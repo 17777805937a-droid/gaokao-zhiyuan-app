@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "高考志愿填报APP后端服务 - 阶段二（PostgreSQL数据库）",
   "type": "module",
+  "engines": {
+    "node": ">=18 <21"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
