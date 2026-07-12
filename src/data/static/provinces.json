@@ -1,0 +1,32 @@
+[
+  {
+    "code": "37",
+    "name": "山东",
+    "mode": "3+3",
+    "maxVolunteers": 96,
+    "volunteerUnit": "major+school",
+    "hasAdjustment": false,
+    "checkLevel": "major",
+    "tip": "山东采用「专业+院校」志愿模式，无需服从专业调剂，每个志愿都是确定的专业"
+  },
+  {
+    "code": "13",
+    "name": "河北",
+    "mode": "3+1+2",
+    "maxVolunteers": 96,
+    "volunteerUnit": "major+school",
+    "hasAdjustment": false,
+    "checkLevel": "major",
+    "tip": "河北采用「专业+院校」志愿模式，选科按专业级别校验"
+  },
+  {
+    "code": "43",
+    "name": "湖南",
+    "mode": "3+1+2",
+    "maxVolunteers": 45,
+    "volunteerUnit": "major_group",
+    "hasAdjustment": true,
+    "checkLevel": "group",
+    "tip": "湖南采用「院校专业组」志愿模式，需服从专业调剂"
+  }
+]

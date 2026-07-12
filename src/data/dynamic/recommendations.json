@@ -1,0 +1,44 @@
+{
+  "schoolPool": [
+    { "name": "山东大学", "city": "济南", "level": "985", "nature": "公办" },
+    { "name": "中国海洋大学", "city": "青岛", "level": "985", "nature": "公办" },
+    { "name": "山东师范大学", "city": "济南", "level": "省重点", "nature": "公办" },
+    { "name": "青岛大学", "city": "青岛", "level": "省重点", "nature": "公办" },
+    { "name": "济南大学", "city": "济南", "level": "普通本科", "nature": "公办" },
+    { "name": "山东科技大学", "city": "青岛", "level": "普通本科", "nature": "公办" },
+    { "name": "山东理工大学", "city": "淄博", "level": "普通本科", "nature": "公办" },
+    { "name": "烟台大学", "city": "烟台", "level": "普通本科", "nature": "公办" }
+  ],
+  "majorPool": [
+    "计算机科学与技术", "人工智能", "数据科学与大数据技术", "软件工程",
+    "电子信息工程", "自动化", "机械工程", "金融学", "会计学", "法学"
+  ],
+  "tierHitRateRanges": {
+    "rush": [10, 40],
+    "stable": [40, 75],
+    "preserve": [75, 95],
+    "cushion": [92, 99]
+  },
+  "riskTemplates": [
+    {
+      "type": "rank_rising",
+      "level": "medium",
+      "message": "近2年位次上升8%",
+      "suggestion": "冲刺档可适当靠前填报",
+      "condition": { "tier": "rush", "indexMod": 2, "indexEquals": 0 }
+    },
+    {
+      "type": "plan_reduced",
+      "level": "low",
+      "message": "今年招生计划减少15%",
+      "suggestion": "竞争增加但位次仍有优势",
+      "condition": { "excludeTier": "cushion", "indexMod": 3, "indexEquals": 0 }
+    }
+  ],
+  "aiAdviceTemplates": {
+    "rush": "{school}{major}专业实力强劲，你的位次处于录取区间下沿，建议作为冲刺档填报。",
+    "stable": "{school}{major}专业与你的选科高度匹配，建议放在稳档前1/3位置。",
+    "preserve": "{school}{major}录取把握较大，建议作为保底档的核心选择。",
+    "cushion": "{school}{major}录取几乎确定，作为垫底保障确保不滑档。"
+  }
+}

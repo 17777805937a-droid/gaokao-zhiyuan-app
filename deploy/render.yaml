@@ -1,0 +1,29 @@
+# Render 后端部署配置（免费层）
+# 用法：在 Render 控制台 "New +" → "Blueprint" → 链接本仓库并选中此文件；
+# 或把本文件复制到仓库根目录，Render 会自动识别。
+# 注意：本文件 rootDir 指向 backend 子目录。
+
+services:
+  - type: web
+    name: gaokao-backend
+    runtime: node
+    rootDir: backend
+    plan: free            # 免费层：512MB RAM / 0.1 vCPU，15 分钟无流量自动休眠
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      - key: DATABASE_URL
+        sync: false        # 在 Render 控制台手动填入 Supabase 连接串
+      - key: DEEPSEEK_API_KEY
+        sync: false        # 在 Render 控制台手动填入 DeepSeek 密钥
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash
+      - key: LLM_TIMEOUT
+        value: "60000"

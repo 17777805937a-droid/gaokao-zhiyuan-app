@@ -1,0 +1,44 @@
+:root {
+  /* 主色系 */
+  --color-primary: #FF7A45;
+  --color-primary-light: #FFF2E8;
+  --color-primary-dark: #D4380D;
+
+  /* 辅助色 */
+  --color-gold: #FAAD14;
+  --color-gold-light: #FFFBE6;
+  --color-green: #52C41A;
+  --color-green-light: #F6FFED;
+  --color-green-dark: #389E0D;
+  --color-blue: #1890FF;
+  --color-blue-light: #E6F7FF;
+  --color-red: #FF4D4F;
+  --color-red-light: #FFF1F0;
+  --color-teal: #08979C;
+  --color-teal-light: #E6FFFB;
+
+  /* 中性色 */
+  --color-bg: #FFF9F5;
+  --color-surface: #FFFFFF;
+  --color-text-1: #262626;
+  --color-text-2: #8C8C8C;
+  --color-text-3: #BFBFBF;
+  --color-border: #F0F0F0;
+  --color-divider: #F5F5F5;
+
+  /* 四档颜色 */
+  --color-rush: #FF6B35;
+  --color-rush-bg: #FFF3ED;
+  --color-stable: #FAAD14;
+  --color-stable-bg: #FFFBE6;
+  --color-preserve: #52C41A;
+  --color-preserve-bg: #F6FFED;
+  --color-cushion: #08979C;
+  --color-cushion-bg: #E6FFFB;
+
+  /* 圆角 */
+  --radius-card: 16px;
+  --radius-button: 26px;
+  --radius-tag: 8px;
+  --radius-input: 12px;
+}

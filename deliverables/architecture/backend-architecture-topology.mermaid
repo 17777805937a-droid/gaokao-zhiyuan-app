@@ -1,0 +1,95 @@
+%% 高考志愿填报APP — 后端架构拓扑图集
+%% 与 backend-architecture-spec-2026-07-10.md 配套
+
+%% ===== 1. 同城双活总体拓扑 =====
+graph TB
+    U[客户端 APP/H5] --> LB[Global LB<br/>健康探测 / 权重]
+    LB -->|50%| AZA[AZ-A 全栈]
+    LB -->|50%| AZB[AZ-B 全栈]
+
+    subgraph AZA[AZ-A 同城]
+        A1[App Cluster<br/>无状态] --> A2[(Redis Cluster 副本)]
+        A1 --> A3[(PG 主 部分分片)]
+        A1 --> A4[Kafka Broker]
+        A1 --> A5[(ES 节点)]
+    end
+
+    subgraph AZB[AZ-B 同城]
+        B1[App Cluster<br/>无状态] --> B2[(Redis Cluster 副本)]
+        B1 --> B3[(PG 同步备 → 可 promote)]
+        B1 --> B4[Kafka Broker]
+        B1 --> B5[(ES 节点)]
+    end
+
+    A3 <-.同步复制 RPO≈0.-> B3
+    AZA -.AZ-A 失联→流量100%切AZ-B.-> AZB
+
+%% ===== 2. 三级缓存读路径与防护 =====
+flowchart LR
+    R[读请求] --> C{CDN 命中?}
+    C -->|是| OK[返回 &lt;50ms]
+    C -->|否| L1{Caffeine 命中?}
+    L1 -->|是| OK
+    L1 -->|否| BF{布隆过滤器<br/>可能存在?}
+    BF -->|否| REJECT[拒绝 防穿透]
+    BF -->|是| L2{Redis 命中?}
+    L2 -->|是| OK
+    L2 -->|否| LOCK[SingleFlight 锁 防击穿]
+    LOCK --> DB[(只读副本 仅5%回源)]
+    DB --> FILL[回填 Redis + Caffeine]
+    FILL --> OK
+
+%% ===== 3. 领域化读写分离路径 =====
+flowchart TB
+    subgraph 写路径强一致[写路径: 强一致 仅3类]
+        W1[草稿保存] --> WM
+        W2[订单创建] --> WM
+        W3[支付确认] --> WM
+        WM[主库 同步写 + 事务] --> WACK[返回 ack]
+        WM -.异步.-> WBUS[(Binlog/事件)]
+    end
+
+    subgraph 读路径[读路径: 95%命中目标]
+        RD[院校/专业/历年线/推荐查看] --> RCDN
+        RCDN[CDN 静态页] --> RL1
+        RL1[L1 Caffeine] --> RL2
+        RL2[L2 Redis] --> RDB[(只读副本 兜底)]
+        RDB --> RFILL[回填 L2+L1]
+    end
+
+    subgraph 异步路径[异步路径: 削峰 其余一律]
+        AQ[推荐生成/AI建议/埋点/风控] --> AK[Kafka Topic]
+        AK --> AW[Worker 匀速消费]
+    end
+
+%% ===== 4. 数据分片与读写分离 =====
+flowchart TB
+    APP[应用] -->|SQL| MW[ShardingSphere 中间件]
+    MW -->|分片键 province_code| CAT[Catalog 分片<br/>school/major/score_line]
+    MW -->|分片键 user_id hash| USR[User/Order/Draft 分片]
+
+    CAT -.强一致写.-> CATM[(Catalog 主库)]
+    CAT -.读.-> CATR[(Catalog 只读副本)]
+    USR -.强一致写.-> USRM[(User 主库)]
+    USR -.读.-> USRR[(User 只读副本)]
+
+    CATM -.Binlog 同步.-> ES[(Elasticsearch<br/>模糊搜索)]
+    USRM -.Binlog 同步.-> ES
+
+%% ===== 5. 限流熔断降级矩阵 =====
+graph LR
+    REQ[请求] --> GW[网关限流 L1<br/>IP/用户/API 令牌桶]
+    GW --> SVC[服务 Sentinel L2<br/>QPS/线程/熔断]
+    SVC -->|正常| OK2[返回结果]
+    SVC -->|LLM 慢/错| DEG[降级: 跳过 AI 建议]
+    SVC -->|Catalog DB 错误率&gt;30%| DEG2[降级: L1 兜底旧数据]
+    SVC -->|ES 不可用| DEG3[降级: 本地前缀匹配]
+    SVC -->|支付错误| QUE[排队 不降级 资金安全]
+
+%% ===== 6. Kafka 可靠投递 =====
+flowchart LR
+    P[Producer 幂等] -->|acks=all| K[(Kafka<br/>RF=3 跨AZ<br/>min.insync=2)]
+    K --> C1[Consumer Group]
+    C1 -->|按 eventId 去重| H[幂等 Handler]
+    H -->|失败 N 次| DLQ[死信队列 DLQ<br/>告警+重放]
+    H -->|成功| COMMIT[commit offset]

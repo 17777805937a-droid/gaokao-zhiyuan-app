@@ -1,0 +1,6 @@
+[
+  { "key": "rush", "name": "冲", "hitRateRange": "10-40%", "color": "var(--color-rush)", "bgColor": "var(--color-rush-bg)" },
+  { "key": "stable", "name": "稳", "hitRateRange": "40-75%", "color": "var(--color-stable)", "bgColor": "var(--color-stable-bg)" },
+  { "key": "preserve", "name": "保", "hitRateRange": "75-90%", "color": "var(--color-preserve)", "bgColor": "var(--color-preserve-bg)" },
+  { "key": "cushion", "name": "垫", "hitRateRange": "90%+", "color": "var(--color-cushion)", "bgColor": "var(--color-cushion-bg)" }
+]

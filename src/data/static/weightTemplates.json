@@ -1,0 +1,20 @@
+[
+  {
+    "mode": "school_first",
+    "name": "院校优先",
+    "weights": { "school": 60, "major": 20, "city": 20 },
+    "desc": "优先更高层次学校"
+  },
+  {
+    "mode": "major_first",
+    "name": "专业优先",
+    "weights": { "school": 20, "major": 60, "city": 20 },
+    "desc": "优先目标专业"
+  },
+  {
+    "mode": "balanced",
+    "name": "均衡考虑",
+    "weights": { "school": 33, "major": 34, "city": 33 },
+    "desc": "三者兼顾"
+  }
+]

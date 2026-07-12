@@ -1,0 +1,52 @@
+# GitHub Actions 自动构建 + SSH 部署示例
+# 用法：保存为 .github/workflows/deploy.yml
+# 在仓库 Settings → Secrets 配置：
+#   HOST      服务器公网 IP
+#   USER      SSH 登录用户（如 ubuntu）
+#   SSH_KEY   私钥（内容）
+#   DEPLOY_PATH  服务器部署目录，如 /opt/gaokao
+# 注意：.env.prod 不要进仓库，请在服务器上预置于 DEPLOY_PATH/deploy/.env.prod
+
+name: Deploy to Tencent Cloud
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "dist,backend,Dockerfile,docker-compose.prod.yml,nginx.conf"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 0
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}/deploy
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker image prune -f

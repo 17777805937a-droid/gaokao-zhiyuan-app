@@ -1,0 +1,249 @@
+%% 高考志愿填报APP — 后端 MVP 类图
+%% 阶段一：Express 路由/控制器/服务/数据层 + 共享类型
+
+classDiagram
+    direction TB
+
+    %% ===== 共享类型（复制自前端 src/types/） =====
+    class Tier {
+        <<enumeration>>
+        rush
+        stable
+        preserve
+        cushion
+    }
+
+    class RiskLevel {
+        <<enumeration>>
+        low
+        medium
+        high
+    }
+
+    class RiskType {
+        <<enumeration>>
+        rank_rising
+        plan_reduced
+        new_major
+        score_volatility
+        policy_change
+    }
+
+    class RiskSignal {
+        +RiskType type
+        +RiskLevel level
+        +string message
+        +string suggestion
+    }
+
+    class Recommendation {
+        +string id
+        +string school
+        +string major
+        +string[] tags
+        +Tier tier
+        +string hitRate
+        +number hitRateMin
+        +number hitRateMax
+        +RiskSignal[] risks
+        +string aiAdvice
+        +string aiAdvantage
+        +string aiSuggestion
+        +string dataSource
+        +string dataYear
+        +boolean isNewMajor
+        +string schoolLevel
+        +string schoolNature
+        +string schoolCity
+        +string tuition
+        +string duration
+        +string degree
+        +number[] rankHistoryRange
+        +number userRank
+        +string conversionMethod
+    }
+
+    class TierRecommendations {
+        +Recommendation[] rush
+        +Recommendation[] stable
+        +Recommendation[] preserve
+        +Recommendation[] cushion
+    }
+
+    class RankLookupResult {
+        +number cumulativeCount
+        +number countAtScore
+    }
+
+    class ApiResponse~T~ {
+        +number code
+        +string message
+        +T data
+    }
+
+    %% ===== 后端类型 =====
+    class ErrorCode {
+        <<enumeration>>
+        SUCCESS = 0
+        VALIDATION_ERROR = 1001
+        NOT_FOUND = 1002
+        INTERNAL_ERROR = 2001
+        UPSTREAM_TIMEOUT = 2002
+    }
+
+    class BusinessException {
+        +number code
+        +string message
+        +number httpStatus
+        +constructor(code, message, httpStatus)
+    }
+
+    %% ===== 数据层（硬编码常量） =====
+    class ScoreRankData {
+        +Record~string, number~ provinceFactor
+    }
+    note for ScoreRankData "provinceFactor = {\n  '37': 1.2, '13': 1.0, '43': 0.9\n}"
+
+    class SchoolPoolItem {
+        +string name
+        +string city
+        +string level
+        +string nature
+    }
+
+    class RiskCondition {
+        +string tier
+        +string excludeTier
+        +number indexMod
+        +number indexEquals
+    }
+
+    class RiskTemplate {
+        +RiskType type
+        +RiskLevel level
+        +string message
+        +string suggestion
+        +RiskCondition condition
+    }
+
+    class RecommendationData {
+        +SchoolPoolItem[] schoolPool
+        +string[] majorPool
+        +Record tierHitRateRanges
+        +RiskTemplate[] riskTemplates
+        +Record aiAdviceTemplates
+    }
+    note for RecommendationData "schoolPool: 8 所院校\nmajorPool: 10 个专业\ntierHitRateRanges: 4 档区间\nriskTemplates: 2 条模板\naiAdviceTemplates: 4 条模板"
+
+    %% ===== 服务层 =====
+    class ScoreRankService {
+        +lookup(params) RankLookupResult
+        -calculateFactor(provinceCode, subjectCategory) number
+        -calculateBaseRank(score, factor) number
+        -calculateCountAtScore(score) number
+    }
+
+    class RecommendationService {
+        +generate(params) TierRecommendations
+        -makeRec(tier, index, schoolIdx, majorIdx) Recommendation
+        -filterRisks(tier, index, templates) RiskSignal[]
+        -buildAiAdvice(tier, school, major) string
+        -buildAiSuggestion(tier) string
+    }
+
+    %% ===== 控制器层 =====
+    class ScoreRankController {
+        +lookup(req, res) void
+    }
+
+    class RecommendationController {
+        +generate(req, res) void
+    }
+
+    %% ===== 中间件 =====
+    class ResponseMiddleware {
+        +responseMiddleware(req, res, next) void
+        +res.success(data, message?) void
+        +res.fail(code, message) void
+    }
+
+    class ErrorHandler {
+        +errorHandler(err, req, res, next) void
+    }
+
+    class NotFoundHandler {
+        +notFoundHandler(req, res) void
+    }
+
+    %% ===== 校验工具 =====
+    class Validator {
+        +validateScoreRankRequest(body) void
+        +validateGenerateRequest(body) void
+    }
+
+    %% ===== 路由 =====
+    class ScoreRankRoutes {
+        +POST /score-rank/lookup
+    }
+
+    class RecommendationRoutes {
+        +POST /recommendations/generate
+    }
+
+    %% ===== 入口 =====
+    class App {
+        +express()
+        +use(cors)
+        +use(json)
+        +use(responseMiddleware)
+        +use(/api/v1, routes)
+        +use(errorHandler)
+        +use(notFoundHandler)
+    }
+
+    class Index {
+        +app.listen(8080)
+    }
+
+    %% ===== 关系 =====
+    Index --> App : 创建并启动
+    App --> ResponseMiddleware : 注册
+    App --> ErrorHandler : 注册
+    App --> NotFoundHandler : 注册
+    App --> ScoreRankRoutes : 挂载 /api/v1/score-rank
+    App --> RecommendationRoutes : 挂载 /api/v1/recommendations
+
+    ScoreRankRoutes --> ScoreRankController : 路由到控制器
+    RecommendationRoutes --> RecommendationController : 路由到控制器
+
+    ScoreRankController --> Validator : 校验请求
+    ScoreRankController --> ScoreRankService : 调用业务逻辑
+    RecommendationController --> Validator : 校验请求
+    RecommendationController --> RecommendationService : 调用业务逻辑
+
+    ScoreRankService --> ScoreRankData : 读取 provinceFactor
+    RecommendationService --> RecommendationData : 读取素材池
+    RecommendationService --> Recommendation : 生成
+    RecommendationService --> RiskSignal : 组装风险
+
+    ScoreRankService ..> RankLookupResult : 返回
+    RecommendationService ..> TierRecommendations : 返回
+
+    ScoreRankController ..> ApiResponse : 封装响应
+    RecommendationController ..> ApiResponse : 封装响应
+
+    Validator ..> BusinessException : 抛出校验异常
+    ErrorHandler ..> BusinessException : 捕获处理
+    ErrorHandler ..> ErrorCode : 错误码映射
+
+    RecommendationData *-- SchoolPoolItem : 包含
+    RecommendationData *-- RiskTemplate : 包含
+    RiskTemplate *-- RiskCondition : 包含
+    RiskTemplate ..> RiskType : 类型引用
+    RiskTemplate ..> RiskLevel : 等级引用
+
+    TierRecommendations *-- Recommendation : 包含 4 档
+    Recommendation *-- RiskSignal : 包含
+    Recommendation ..> Tier : tier 类型
+    RiskSignal ..> RiskType : type 类型
+    RiskSignal ..> RiskLevel : level 类型

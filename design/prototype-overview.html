@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高考志愿填报App · 交互原型 Overview</title>
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: #F5F5F0;
+    color: #262626;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-header {
+    text-align: center;
+    padding: 48px 24px 32px;
+    background: linear-gradient(135deg, #FFF9F5 0%, #FFF2E8 100%);
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #262626;
+    letter-spacing: -0.5px;
+  }
+  .page-header .subtitle {
+    font-size: 15px;
+    color: #8C8C8C;
+    margin-top: 8px;
+  }
+  .design-system-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 20px 24px;
+    background: #fff;
+    border-bottom: 1px solid #F0F0F0;
+    flex-wrap: wrap;
+  }
+  .ds-group { display:flex; align-items:center; gap:8px; }
+  .ds-label { font-size:12px; color:#8C8C8C; font-weight:500; }
+  .ds-swatch {
+    width:24px; height:24px; border-radius:6px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .screens-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    padding: 48px;
+    justify-content: center;
+  }
+  .screen-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .screen-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 4px;
+  }
+  .screen-sublabel {
+    font-size: 12px;
+    color: #8C8C8C;
+    margin-bottom: 16px;
+  }
+  .review-note {
+    width: 393px;
+    margin-top: 20px;
+    padding: 16px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #F0F0F0;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #595959;
+  }
+  .review-note .rn-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #262626;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .review-note .rn-tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  .rn-tag-opt { background:#E6F7FF; color:#1890FF; }
+  .rn-tag-issue { background:#FFF1F0; color:#FF4D4F; }
+  .rn-tag-good { background:#F6FFED; color:#52C41A; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+// ============================================================
+// iOS Frame Component (from huashu-design assets/ios_frame.jsx)
+// ============================================================
+const iosFrameStyles = {
+  wrapper: {
+    display: 'inline-block', padding: 12, background: '#000',
+    borderRadius: 60, boxShadow: '0 0 0 2px #1f2937, 0 20px 60px rgba(0,0,0,0.3)',
+    position: 'relative',
+  },
+  screen: {
+    position: 'relative', borderRadius: 48, overflow: 'hidden', background: '#fff',
+  },
+  statusBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 54,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '0 32px 0 32px', fontSize: 16, fontWeight: 600,
+    fontFamily: '-apple-system, "SF Pro Text", sans-serif', zIndex: 20, pointerEvents: 'none',
+  },
+  dynamicIsland: {
+    position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+    width: 124, height: 36, background: '#000', borderRadius: 999, zIndex: 30,
+  },
+  statusIcons: { display: 'flex', alignItems: 'center', gap: 6 },
+  signalIcon: { display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 },
+  signalBar: { width: 3, background: 'currentColor', borderRadius: 1 },
+  batteryIcon: {
+    width: 26, height: 12, border: '1.5px solid currentColor', borderRadius: 3,
+    padding: 1, position: 'relative', opacity: 0.8,
+  },
+  batteryCap: {
+    position: 'absolute', top: 3, right: -3, width: 2, height: 6,
+    background: 'currentColor', borderRadius: '0 1px 1px 0',
+  },
+  content: {
+    position: 'absolute', top: 54, left: 0, right: 0, bottom: 34, overflow: 'auto',
+  },
+  homeIndicator: {
+    position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+    width: 140, height: 5, background: 'rgba(0,0,0,0.3)', borderRadius: 999, zIndex: 10,
+  },
+};
+
+function IosFrame({ children, width = 393, height = 852, time = '9:41', battery = 100, darkMode = false }) {
+  const textColor = darkMode ? '#fff' : '#000';
+  return (
+    <div style={iosFrameStyles.wrapper}>
+      <div style={{ ...iosFrameStyles.screen, width, height, background: darkMode ? '#000' : '#fff' }}>
+        <div style={{ ...iosFrameStyles.statusBar, color: textColor }}>
+          <span>{time}</span>
+          <div style={iosFrameStyles.statusIcons}>
+            <div style={iosFrameStyles.signalIcon}>
+              <div style={{ ...iosFrameStyles.signalBar, height: 4 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 6 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 9 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 11 }} />
+            </div>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" style={{ color: textColor }}>
+              <path d="M8 11.5a1 1 0 100-2 1 1 0 000 2z" fill="currentColor" />
+              <path d="M3 7.5a7 7 0 0110 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+              <path d="M1 4.5a11 11 0 0114 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.7" />
+            </svg>
+            <div style={iosFrameStyles.batteryIcon}>
+              <div style={{ width: `${battery}%`, height: '100%', background: 'currentColor', borderRadius: 1, opacity: 0.9 }} />
+              <div style={iosFrameStyles.batteryCap} />
+            </div>
+          </div>
+        </div>
+        <div style={iosFrameStyles.dynamicIsland} />
+        <div style={iosFrameStyles.content}>{children}</div>
+        <div style={iosFrameStyles.homeIndicator} />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Design Tokens & Shared Components
+// ============================================================
+const C = {
+  primary: '#FF7A45',
+  primaryLight: '#FFF2E8',
+  primaryDark: '#D4380D',
+  gold: '#FAAD14',
+  goldLight: '#FFFBE6',
+  green: '#52C41A',
+  greenLight: '#F6FFED',
+  greenDark: '#389E0D',
+  blue: '#1890FF',
+  blueLight: '#E6F7FF',
+  red: '#FF4D4F',
+  redLight: '#FFF1F0',
+  teal: '#08979C',
+  tealLight: '#E6FFFB',
+  bg: '#FFF9F5',
+  surface: '#FFFFFF',
+  text1: '#262626',
+  text2: '#8C8C8C',
+  text3: '#BFBFBF',
+  border: '#F0F0F0',
+  divider: '#F5F5F5',
+  // Tier colors
+  rush: '#FF6B35',
+  rushBg: '#FFF3ED',
+  stable: '#FAAD14',
+  stableBg: '#FFFBE6',
+  preserve: '#52C41A',
+  preserveBg: '#F6FFED',
+  cushion: '#08979C',
+  cushionBg: '#E6FFFB',
+};
+
+const S = {
+  screen: { width: '100%', height: '100%', background: C.bg, overflow: 'hidden', position: 'relative' },
+  pad: { padding: '0 20px' },
+  title: { fontSize: 22, fontWeight: 700, color: C.text1, letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, color: C.text2, marginTop: 4 },
+  card: { background: C.surface, borderRadius: 16, padding: 16, marginTop: 12 },
+  label: { fontSize: 14, fontWeight: 600, color: C.text1, marginBottom: 8 },
+  input: {
+    width: '100%', height: 48, border: `1.5px solid ${C.border}`, borderRadius: 12,
+    padding: '0 16px', fontSize: 16, color: C.text1, background: C.surface,
+    outline: 'none',
+  },
+  btnPrimary: {
+    width: '100%', height: 52, background: `linear-gradient(135deg, ${C.primary} 0%, #FF9C6E 100%)`,
+    color: '#fff', fontSize: 17, fontWeight: 600, border: 'none', borderRadius: 26,
+    cursor: 'pointer', boxShadow: `0 4px 16px ${C.primary}40`,
+  },
+  btnGhost: {
+    width: '100%', height: 48, background: 'transparent', color: C.text2,
+    fontSize: 15, border: `1.5px solid ${C.border}`, borderRadius: 24, cursor: 'pointer',
+  },
+  hint: { fontSize: 13, color: C.primary, textAlign: 'center', marginTop: 12, fontWeight: 500 },
+  tag: {
+    display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
+    padding: '3px 8px', borderRadius: 6, fontWeight: 500,
+  },
+};
+
+// Progress Bar Component
+function ProgressBar({ step, total }) {
+  const pct = (step / total) * 100;
+  return (
+    <div style={{ padding: '12px 20px 0' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, color: C.text2, fontWeight: 500 }}>
+          第{step}步/共{total}步
+        </span>
+        <span style={{ fontSize: 12, color: C.primary, fontWeight: 600 }}>{Math.round(pct)}%</span>
+      </div>
+      <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: `linear-gradient(90deg, ${C.primary} 0%, ${C.gold} 100%)`,
+          borderRadius: 3, transition: 'width 0.3s',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// Navigation Bar
+function NavBar({ title, showBack }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '8px 20px 4px', height: 44,
+    }}>
+      {showBack ? (
+        <div style={{ width: 32, fontSize: 20, color: C.text1, cursor: 'pointer' }}>‹</div>
+      ) : <div style={{ width: 32 }} />}
+      <span style={{ fontSize: 16, fontWeight: 600, color: C.text1 }}>{title}</span>
+      <div style={{ width: 32 }} />
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 1: 首页/启动页
+// ============================================================
+function ScreenHome() {
+  return (
+    <div style={{ ...S.screen, background: `linear-gradient(180deg, ${C.primaryLight} 0%, ${C.bg} 40%)` }}>
+      {/* Hero Section */}
+      <div style={{
+        position: 'relative', padding: '40px 24px 0', textAlign: 'center',
+      }}>
+        {/* Sun illustration */}
+        <div style={{
+          width: 80, height: 80, margin: '0 auto 16px',
+          borderRadius: '50%',
+          background: `radial-gradient(circle at 35% 35%, #FFD666 0%, ${C.gold} 50%, ${C.primary} 100%)`,
+          boxShadow: `0 8px 32px ${C.gold}60`,
+          position: 'relative',
+        }}>
+          {/* Sun rays */}
+          {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
+            <div key={deg} style={{
+              position: 'absolute', top: '50%', left: '50%',
+              width: 4, height: 14, background: C.gold, borderRadius: 2,
+              transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-52px)`,
+              opacity: 0.5,
+            }} />
+          ))}
+        </div>
+
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: C.text1, letterSpacing: -0.5 }}>
+          志愿领航
+        </h1>
+        <p style={{ fontSize: 15, color: C.primary, marginTop: 6, fontWeight: 500 }}>
+          你的信任型志愿决策顾问
+        </p>
+        <p style={{ fontSize: 13, color: C.text2, marginTop: 8, lineHeight: 1.6 }}>
+          规则引擎驱动 · 有态度AI建议 · 垫档保障≥90%
+        </p>
+      </div>
+
+      {/* Trust Cards */}
+      <div style={{ padding: '24px 20px' }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[
+            { icon: '🛡', title: '规则引擎', desc: '防幻觉校验' },
+            { icon: '🎯', title: '有态度', desc: 'AI填报建议' },
+            { icon: '✅', title: '垫档保障', desc: '命中率≥90%' },
+          ].map((t, i) => (
+            <div key={i} style={{
+              flex: 1, background: C.surface, borderRadius: 14, padding: '14px 8px',
+              textAlign: 'center', border: `1px solid ${C.divider}`,
+            }}>
+              <div style={{ fontSize: 22 }}>{t.icon}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.text1, marginTop: 4 }}>{t.title}</div>
+              <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>{t.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Resume Card (断点续填) */}
+      <div style={{ padding: '0 20px' }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${C.blueLight} 0%, #F0F8FF 100%)`,
+          borderRadius: 14, padding: 14, display: 'flex', alignItems: 'center', gap: 12,
+          border: `1px solid ${C.blue}30`,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, background: C.blue,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, color: '#fff',
+          }}>↻</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.text1 }}>继续上次填报</div>
+            <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>已完成 Step 2 · 选科信息</div>
+          </div>
+          <span style={{ fontSize: 18, color: C.blue }}>›</span>
+        </div>
+      </div>
+
+      {/* MVP Province Notice */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{
+          background: C.goldLight, borderRadius: 12, padding: 12,
+          display: 'flex', gap: 8, alignItems: 'flex-start',
+          border: `1px solid ${C.gold}30`,
+        }}>
+          <span style={{ fontSize: 16 }}>📍</span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text1 }}>MVP试点省份</div>
+            <div style={{ fontSize: 11, color: C.text2, marginTop: 2, lineHeight: 1.5 }}>
+              当前支持 山东(3+3) · 河北(3+1+2) · 湖南(3+1+2)，更多省份即将开放
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ padding: '8px 20px 20px', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+        <button style={S.btnPrimary}>开始填报</button>
+        <p style={{ fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 10 }}>
+          已为 12,580+ 考生提供志愿方案
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 2: Step 1 基础信息
+// ============================================================
+function ScreenStep1() {
+  return (
+    <div style={S.screen}>
+      <ProgressBar step={1} total={4} />
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <h2 style={S.title}>填写基础信息</h2>
+        <p style={S.subtitle}>只需30秒，系统将自动为你查询省位次</p>
+      </div>
+
+      {/* Province */}
+      <div style={{ ...S.pad, marginTop: 20 }}>
+        <div style={S.label}>高考省份 <span style={{ color: C.red }}>*</span></div>
+        <div style={{
+          height: 48, border: `1.5px solid ${C.border}`, borderRadius: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', background: C.surface,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 500, color: C.text1 }}>山东</span>
+            <span style={{ ...S.tag, background: C.primaryLight, color: C.primary }}>3+3模式</span>
+          </div>
+          <span style={{ color: C.text3, fontSize: 14 }}>▼</span>
+        </div>
+      </div>
+
+      {/* Score */}
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={S.label}>高考总分 <span style={{ color: C.red }}>*</span></div>
+          <span style={{ fontSize: 12, color: C.text3 }}>满分750</span>
+        </div>
+        <div style={{
+          height: 56, border: `1.5px solid ${C.primary}`, borderRadius: 12,
+          display: 'flex', alignItems: 'center', padding: '0 16px', background: C.surface,
+        }}>
+          <span style={{ fontSize: 28, fontWeight: 700, color: C.primary }}>623</span>
+          <span style={{ fontSize: 16, color: C.text2, marginLeft: 4 }}>分</span>
+        </div>
+      </div>
+
+      {/* Auto-queried Rank */}
+      <div style={{ ...S.pad, marginTop: 12 }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${C.greenLight} 0%, #F0FFF0 100%)`,
+          borderRadius: 14, padding: 14, border: `1px solid ${C.green}30`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 16 }}>✅</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.greenDark }}>省位次已自动查询</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 12, color: C.text2 }}>约第</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: C.greenDark }}>12,580</span>
+            <span style={{ fontSize: 12, color: C.text2 }}>名</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.text2, marginTop: 4 }}>
+            同分38人 · 位次区间 12,543–12,580
+          </div>
+          <div style={{
+            fontSize: 11, color: C.blue, marginTop: 8, textDecoration: 'underline',
+            cursor: 'pointer',
+          }}>手动修改位次</div>
+        </div>
+      </div>
+
+      {/* Filler Role */}
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <div style={S.label}>你是 <span style={{ color: C.red }}>*</span></div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{
+            flex: 1, height: 56, borderRadius: 14, padding: '0 14px',
+            display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+            border: `2px solid ${C.primary}`, background: C.primaryLight,
+          }}>
+            <span style={{ fontSize: 20 }}>🎓</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.primaryDark }}>考生本人</span>
+          </div>
+          <div style={{
+            flex: 1, height: 56, borderRadius: 14, padding: '0 14px',
+            display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+            border: `1.5px solid ${C.border}`, background: C.surface,
+          }}>
+            <span style={{ fontSize: 20 }}>👨‍👩‍👧</span>
+            <span style={{ fontSize: 14, color: C.text2 }}>家长代理</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Province Tip */}
+      <div style={{ ...S.pad, marginTop: 12 }}>
+        <div style={{
+          background: C.blueLight, borderRadius: 10, padding: 10,
+          display: 'flex', gap: 6, alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: 13 }}>💡</span>
+          <span style={{ fontSize: 11, color: C.text2, lineHeight: 1.5 }}>
+            你所在省份采用「专业+院校」志愿模式，无需服从专业调剂，每个志愿都是确定的专业
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 20px 20px', background: `linear-gradient(180deg, transparent 0%, ${C.bg} 30%)` }}>
+        <button style={S.btnPrimary}>下一步 →</button>
+        <p style={S.hint}>只剩3步，马上就能看到推荐方案</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 3: Step 2 选科组合 (3+1+2 mode)
+// ============================================================
+function ScreenStep2() {
+  const subjects = [
+    { name: '物理', icon: '⚡', selected: true, type: 'first' },
+    { name: '历史', icon: '📖', selected: false, type: 'first' },
+  ];
+  const secondSubjects = [
+    { name: '化学', selected: true },
+    { name: '生物', selected: true },
+    { name: '地理', selected: false },
+    { name: '政治', selected: false },
+  ];
+
+  return (
+    <div style={S.screen}>
+      <ProgressBar step={2} total={4} />
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <h2 style={S.title}>选择你的选科组合</h2>
+        <p style={S.subtitle}>选科决定了你能报考的专业范围</p>
+      </div>
+
+      {/* First Subject */}
+      <div style={{ ...S.pad, marginTop: 20 }}>
+        <div style={{ ...S.label, display: 'flex', justifyContent: 'space-between' }}>
+          <span>首选科目 <span style={{ color: C.red }}>*</span></span>
+          <span style={{ fontSize: 12, color: C.text2, fontWeight: 400 }}>2选1</span>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {subjects.map((s, i) => (
+            <div key={i} style={{
+              flex: 1, height: 72, borderRadius: 14, padding: 12,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+              cursor: 'pointer',
+              border: s.selected ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`,
+              background: s.selected ? C.primaryLight : C.surface,
+            }}>
+              <span style={{ fontSize: 24 }}>{s.icon}</span>
+              <span style={{
+                fontSize: 15, fontWeight: 600,
+                color: s.selected ? C.primaryDark : C.text1,
+              }}>{s.name}类</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Second Subjects */}
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <div style={{ ...S.label, display: 'flex', justifyContent: 'space-between' }}>
+          <span>再选科目 <span style={{ color: C.red }}>*</span></span>
+          <span style={{ fontSize: 12, color: C.text2, fontWeight: 400 }}>4选2 · 已选2/2</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {secondSubjects.map((s, i) => (
+            <div key={i} style={{
+              height: 56, borderRadius: 12, padding: '0 14px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer',
+              border: s.selected ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`,
+              background: s.selected ? C.primaryLight : C.surface,
+              opacity: !s.selected && secondSubjects.filter(x => x.selected).length >= 2 ? 0.4 : 1,
+            }}>
+              <span style={{
+                fontSize: 15, fontWeight: 500,
+                color: s.selected ? C.primaryDark : C.text1,
+              }}>{s.name}</span>
+              {s.selected && <span style={{ color: C.primary, fontSize: 16 }}>✓</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Selection Summary */}
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <div style={{
+          background: C.surface, borderRadius: 14, padding: 14,
+          border: `1px solid ${C.divider}`,
+        }}>
+          <div style={{ fontSize: 13, color: C.text2 }}>已选组合</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: C.text1, marginTop: 4 }}>
+            物理 + 化学、生物
+          </div>
+          <div style={{
+            marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.divider}`,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 13 }}>📊</span>
+            <span style={{ fontSize: 12, color: C.text2 }}>可报专业覆盖率：</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: C.green }}>95.2%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Province Tip */}
+      <div style={{ ...S.pad, marginTop: 12 }}>
+        <div style={{
+          background: C.blueLight, borderRadius: 10, padding: 10,
+          display: 'flex', gap: 6, alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: 13 }}>💡</span>
+          <span style={{ fontSize: 11, color: C.text2, lineHeight: 1.5 }}>
+            河北采用「专业+院校」志愿模式，选科按专业级别校验
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 20px 20px', background: `linear-gradient(180deg, transparent 0%, ${C.bg} 30%)` }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button style={{ ...S.btnGhost, width: 100 }}>‹ 上一步</button>
+          <button style={{ ...S.btnPrimary, flex: 1 }}>下一步 →</button>
+        </div>
+        <p style={S.hint}>只剩2步，马上就能看到推荐方案</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 4: Step 3 意向偏好
+// ============================================================
+function ScreenStep3() {
+  return (
+    <div style={S.screen}>
+      <ProgressBar step={3} total={4} />
+      <div style={{ ...S.pad, marginTop: 12 }}>
+        <h2 style={{ ...S.title, fontSize: 20 }}>你的偏好</h2>
+        <p style={S.subtitle}>填写偏好可获得更精准的推荐，也可跳过直接生成</p>
+      </div>
+
+      {/* Skip Notice */}
+      <div style={{ ...S.pad, marginTop: 10 }}>
+        <div style={{
+          background: C.goldLight, borderRadius: 10, padding: '8px 12px',
+          display: 'flex', gap: 6, alignItems: 'center',
+          border: `1px solid ${C.gold}30`,
+        }}>
+          <span style={{ fontSize: 13 }}>⚠️</span>
+          <span style={{ fontSize: 12, color: C.text1, fontWeight: 500 }}>本页全部可跳过，不影响方案生成</span>
+        </div>
+      </div>
+
+      {/* Major Blacklist */}
+      <div style={{ ...S.pad, marginTop: 14 }}>
+        <div style={S.label}>🚫 绝对不读的专业</div>
+        <div style={{
+          border: `1.5px dashed ${C.border}`, borderRadius: 12, padding: 10,
+          background: C.surface,
+        }}>
+          <div style={{ fontSize: 12, color: C.text3, textAlign: 'center' }}>+ 搜索添加专业</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+          {['哲学', '考古学'].map((m, i) => (
+            <span key={i} style={{
+              ...S.tag, background: C.redLight, color: C.red,
+              padding: '4px 10px', fontSize: 12, borderRadius: 8,
+            }}>
+              ✕ {m}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Region Preference */}
+      <div style={{ ...S.pad, marginTop: 14 }}>
+        <div style={S.label}>📍 地域偏好</div>
+        <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>期望城市</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {['北京', '上海'].map((c, i) => (
+            <span key={i} style={{
+              ...S.tag, background: C.primaryLight, color: C.primaryDark,
+              padding: '4px 10px', fontSize: 12, borderRadius: 8,
+            }}>{c} ✕</span>
+          ))}
+          <span style={{
+            ...S.tag, border: `1px dashed ${C.border}`, color: C.text3,
+            padding: '4px 10px', fontSize: 12, borderRadius: 8,
+          }}>+ 添加</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.text2, marginTop: 8, marginBottom: 6 }}>经济圈偏好</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {['京津冀', '江浙沪', '大湾区'].map((c, i) => (
+            <span key={i} style={{
+              ...S.tag,
+              background: i === 1 ? C.primaryLight : C.surface,
+              color: i === 1 ? C.primaryDark : C.text2,
+              border: `1px solid ${i === 1 ? C.primary : C.border}`,
+              padding: '4px 10px', fontSize: 12, borderRadius: 8,
+            }}>{c}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* School Level */}
+      <div style={{ ...S.pad, marginTop: 14 }}>
+        <div style={S.label}>🏫 院校层次</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[
+            { name: '985', sel: true },
+            { name: '211', sel: true },
+            { name: '双一流', sel: false },
+            { name: '普通本科', sel: false },
+          ].map((s, i) => (
+            <span key={i} style={{
+              ...S.tag,
+              background: s.sel ? C.primaryLight : C.surface,
+              color: s.sel ? C.primaryDark : C.text2,
+              border: `1px solid ${s.sel ? C.primary : C.border}`,
+              padding: '4px 12px', fontSize: 12, borderRadius: 8,
+            }}>{s.name}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Weight Templates */}
+      <div style={{ ...S.pad, marginTop: 14 }}>
+        <div style={S.label}>⚖️ 核心诉求（权重）</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { name: '院校优先', w: '60/20/20', sel: false },
+            { name: '专业优先', w: '20/60/20', sel: false },
+            { name: '均衡考虑', w: '33/34/33', sel: true },
+          ].map((t, i) => (
+            <div key={i} style={{
+              flex: 1, borderRadius: 12, padding: 10, textAlign: 'center',
+              border: t.sel ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`,
+              background: t.sel ? C.primaryLight : C.surface,
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: 600,
+                color: t.sel ? C.primaryDark : C.text1,
+              }}>{t.name}</div>
+              <div style={{
+                fontSize: 10, color: C.text2, marginTop: 2,
+              }}>{t.w}</div>
+              {/* Mini bar viz */}
+              <div style={{ display: 'flex', gap: 2, marginTop: 6, height: 4 }}>
+                {t.w.split('/').map((v, j) => (
+                  <div key={j} style={{
+                    flex: parseInt(v),
+                    background: ['#FF6B35', '#FAAD14', '#1890FF'][j],
+                    borderRadius: 2,
+                  }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{
+          fontSize: 11, color: C.blue, marginTop: 8, cursor: 'pointer',
+        }}>高级设置：自定义权重 →</div>
+      </div>
+
+      {/* Strategy */}
+      <div style={{ ...S.pad, marginTop: 14 }}>
+        <div style={S.label}>🎯 填报策略</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[
+            { name: '保院校', sel: true, desc: '优先更高层次学校' },
+            { name: '保专业', sel: false, desc: '优先目标专业' },
+          ].map((s, i) => (
+            <div key={i} style={{
+              flex: 1, borderRadius: 12, padding: 10,
+              border: s.sel ? `2px solid ${C.primary}` : `1.5px solid ${C.border}`,
+              background: s.sel ? C.primaryLight : C.surface,
+            }}>
+              <div style={{
+                fontSize: 13, fontWeight: 600,
+                color: s.sel ? C.primaryDark : C.text1,
+              }}>{s.name}</div>
+              <div style={{ fontSize: 10, color: C.text2, marginTop: 2 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom CTA */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 20px 16px', background: `linear-gradient(180deg, transparent 0%, ${C.bg} 30%)` }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{ ...S.btnGhost, width: 80, fontSize: 13 }}>‹</button>
+          <button style={{ ...S.btnGhost, flex: 1, fontSize: 14, color: C.text2 }}>⏭ 跳过本步</button>
+          <button style={{ ...S.btnPrimary, flex: 1.5, fontSize: 15 }}>下一步 →</button>
+        </div>
+        <p style={S.hint}>最后1步！确认信息即可生成方案</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 5: Step 4 确认&生成
+// ============================================================
+function ScreenStep4() {
+  const infoItems = [
+    { label: '省份', value: '山东（3+3模式）' },
+    { label: '选科', value: '物理+化学+生物' },
+    { label: '总分', value: '623分' },
+    { label: '位次', value: '约第12,580名' },
+    { label: '身份', value: '考生本人' },
+  ];
+  const prefItems = [
+    { label: '院校', value: '倾向985/211' },
+    { label: '地域', value: '期望北京/上海' },
+    { label: '黑名单', value: '哲学、考古学' },
+    { label: '权重', value: '均衡考虑(33/34/33)' },
+    { label: '策略', value: '保院校' },
+  ];
+
+  return (
+    <div style={S.screen}>
+      <ProgressBar step={4} total={4} />
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <h2 style={S.title}>确认信息，生成方案</h2>
+        <p style={S.subtitle}>请核对以下信息，确认后一键生成推荐方案</p>
+      </div>
+
+      {/* Info Summary Card */}
+      <div style={{ ...S.pad, marginTop: 16 }}>
+        <div style={{
+          background: C.surface, borderRadius: 16, overflow: 'hidden',
+          border: `1px solid ${C.divider}`,
+        }}>
+          {/* Basic Info Section */}
+          <div style={{ padding: 14 }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: C.text2, marginBottom: 10,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              📋 基础信息
+            </div>
+            {infoItems.map((item, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '7px 0', borderBottom: i < infoItems.length - 1 ? `1px solid ${C.divider}` : 'none',
+              }}>
+                <span style={{ fontSize: 13, color: C.text2 }}>{item.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text1 }}>{item.value}</span>
+                  <span style={{ fontSize: 11, color: C.blue, cursor: 'pointer' }}>修改</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: C.divider, margin: '0 14px' }} />
+
+          {/* Preferences Section */}
+          <div style={{ padding: 14 }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: C.text2, marginBottom: 10,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              ⚙️ 偏好设置
+            </div>
+            {prefItems.map((item, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '7px 0', borderBottom: i < prefItems.length - 1 ? `1px solid ${C.divider}` : 'none',
+              }}>
+                <span style={{ fontSize: 13, color: C.text2 }}>{item.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text1 }}>{item.value}</span>
+                  <span style={{ fontSize: 11, color: C.blue, cursor: 'pointer' }}>修改</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Volunteer Count Info */}
+      <div style={{ ...S.pad, marginTop: 12 }}>
+        <div style={{
+          background: C.blueLight, borderRadius: 12, padding: 10,
+          display: 'flex', gap: 8, alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 14 }}>📋</span>
+          <span style={{ fontSize: 12, color: C.text2 }}>
+            山东模式最多可填 <b style={{ color: C.blue }}>96个</b> 志愿，系统将为你生成冲稳保垫四档推荐
+          </span>
+        </div>
+      </div>
+
+      {/* Generate Button */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px 20px', background: `linear-gradient(180deg, transparent 0%, ${C.bg} 20%)` }}>
+        <button style={{
+          ...S.btnPrimary, height: 56, fontSize: 18,
+          background: `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 100%)`,
+        }}>
+          ⚡ 一键生成推荐方案
+        </button>
+        <p style={{
+          fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 10,
+        }}>
+          生成约需3-5秒，请稍候
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 6: 推荐结果页
+// ============================================================
+function ScreenResults() {
+  const tiers = [
+    { name: '冲', count: 19, color: C.rush, bg: C.rushBg, hitRate: '10-40%' },
+    { name: '稳', count: 58, color: C.stable, bg: C.stableBg, hitRate: '40-75%' },
+    { name: '保', count: 14, color: C.preserve, bg: C.preserveBg, hitRate: '75-90%' },
+    { name: '垫', count: 5, color: C.cushion, bg: C.cushionBg, hitRate: '90%+' },
+  ];
+
+  const recommendations = [
+    {
+      school: '山东大学',
+      major: '计算机科学与技术',
+      tags: ['985', '双一流', '公办'],
+      hitRate: '55-65%',
+      risks: ['近2年位次上升8%'],
+      aiAdvice: '该校计算机专业实力强劲，你的位次处于录取区间中段，建议放在稳档前1/3位置。',
+    },
+    {
+      school: '中国海洋大学',
+      major: '人工智能',
+      tags: ['985', '双一流', '公办'],
+      hitRate: '48-60%',
+      risks: [],
+      aiAdvice: '人工智能为该校近年新设方向，与你的选科高度匹配，可适当靠前填报。',
+    },
+    {
+      school: '山东师范大学',
+      major: '数据科学与大数据技术',
+      tags: ['省重点', '公办'],
+      hitRate: '62-72%',
+      risks: ['今年招生计划减少15%'],
+      aiAdvice: '招生计划缩减增加了竞争，但你的位次仍有明显优势，稳档中段位置较为稳妥。',
+    },
+  ];
+
+  return (
+    <div style={S.screen}>
+      {/* Header */}
+      <div style={{
+        background: C.surface, padding: '10px 20px 12px',
+        borderBottom: `1px solid ${C.divider}`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.text1 }}>推荐方案</span>
+          <span style={{ fontSize: 12, color: C.text2 }}>共96个志愿</span>
+        </div>
+        {/* Weight Summary Bar */}
+        <div style={{
+          marginTop: 8, background: C.primaryLight, borderRadius: 8, padding: '6px 12px',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 12, color: C.primaryDark, fontWeight: 500 }}>
+            ⚖️ 均衡考虑 · 院校33% · 专业34% · 城市33%
+          </span>
+          <span style={{ fontSize: 11, color: C.blue, marginLeft: 'auto', cursor: 'pointer' }}>调整</span>
+        </div>
+      </div>
+
+      {/* Tier Tabs */}
+      <div style={{ display: 'flex', padding: '12px 20px 8px', gap: 6 }}>
+        {tiers.map((t, i) => (
+          <div key={i} style={{
+            flex: 1, borderRadius: 10, padding: '8px 4px', textAlign: 'center',
+            background: i === 1 ? t.color : t.bg,
+            border: `1.5px solid ${i === 1 ? t.color : t.color + '30'}`,
+            cursor: 'pointer',
+          }}>
+            <div style={{
+              fontSize: 15, fontWeight: 700,
+              color: i === 1 ? '#fff' : t.color,
+            }}>{t.name}</div>
+            <div style={{
+              fontSize: 11, marginTop: 2,
+              color: i === 1 ? 'rgba(255,255,255,0.8)' : C.text2,
+            }}>{t.count}个</div>
+            <div style={{
+              fontSize: 9, marginTop: 1,
+              color: i === 1 ? 'rgba(255,255,255,0.7)' : C.text3,
+            }}>{t.hitRate}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recommendation List */}
+      <div style={{ padding: '0 20px', paddingBottom: 80 }}>
+        {/* Section Label */}
+        <div style={{
+          fontSize: 12, color: C.stable, fontWeight: 600, marginTop: 4, marginBottom: 8,
+          display: 'flex', alignItems: 'center', gap: 4,
+        }}>
+          <span style={{
+            width: 4, height: 14, background: C.stable, borderRadius: 2, display: 'inline-block',
+          }} />
+          稳档 · 历史命中率40-75%
+        </div>
+
+        {recommendations.map((r, i) => (
+          <div key={i} style={{
+            background: C.surface, borderRadius: 14, padding: 14, marginBottom: 10,
+            border: `1px solid ${C.divider}`,
+          }}>
+            {/* School + Major */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text1 }}>{r.school}</div>
+                <div style={{ fontSize: 13, color: C.text2, marginTop: 2 }}>{r.major}</div>
+              </div>
+              <span style={{
+                ...S.tag, background: C.stableBg, color: C.stable,
+                fontSize: 10, padding: '3px 8px', borderRadius: 6, fontWeight: 600,
+              }}>稳</span>
+            </div>
+
+            {/* Tags */}
+            <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
+              {r.tags.map((t, j) => (
+                <span key={j} style={{
+                  ...S.tag, background: C.divider, color: C.text2,
+                  fontSize: 10, padding: '2px 6px', borderRadius: 4,
+                }}>{t}</span>
+              ))}
+            </div>
+
+            {/* Hit Rate */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6, marginTop: 10,
+              paddingTop: 10, borderTop: `1px solid ${C.divider}`,
+            }}>
+              <span style={{ fontSize: 12, color: C.text2 }}>历史命中率</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.stable }}>{r.hitRate}</span>
+              <span style={{ fontSize: 11, color: C.text3, marginLeft: 'auto' }}>基于近3年数据</span>
+            </div>
+
+            {/* Risk Signals */}
+            {r.risks.length > 0 && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {r.risks.map((risk, j) => (
+                  <div key={j} style={{
+                    background: C.goldLight, borderRadius: 6, padding: '5px 8px',
+                    display: 'flex', gap: 4, alignItems: 'center',
+                  }}>
+                    <span style={{ fontSize: 11 }}>⚠️</span>
+                    <span style={{ fontSize: 11, color: C.text1 }}>{risk}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* AI Advice */}
+            <div style={{
+              marginTop: 8, background: `linear-gradient(135deg, ${C.primaryLight} 0%, #FFF8F0 100%)`,
+              borderRadius: 8, padding: 10, border: `1px solid ${C.primary}15`,
+            }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: 11 }}>🤖</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: C.primaryDark }}>AI建议</span>
+              </div>
+              <div style={{ fontSize: 11, color: C.text1, lineHeight: 1.6 }}>{r.aiAdvice}</div>
+            </div>
+
+            {/* Data Source */}
+            <div style={{
+              marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 10, color: C.text3 }}>数据来源：山东省考试院 · 2024年</span>
+              <span style={{ fontSize: 11, color: C.blue, cursor: 'pointer' }}>查看详情 ›</span>
+            </div>
+          </div>
+        ))}
+
+        {/* Load More */}
+        <div style={{
+          textAlign: 'center', padding: '12px 0',
+          fontSize: 13, color: C.text2,
+        }}>
+          还有 55 个稳档推荐 · 下拉加载
+        </div>
+      </div>
+
+      {/* Bottom Actions */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '10px 20px 16px', background: C.surface,
+        borderTop: `1px solid ${C.divider}`,
+        display: 'flex', gap: 10,
+      }}>
+        <button style={{ ...S.btnGhost, flex: 1, fontSize: 14 }}>⚖️ 调整权重</button>
+        <button style={{ ...S.btnPrimary, flex: 1.5, fontSize: 15 }}>重新生成</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Screen 7: 推荐详情页
+// ============================================================
+function ScreenDetail() {
+  return (
+    <div style={S.screen}>
+      {/* Header */}
+      <div style={{
+        background: `linear-gradient(135deg, ${C.primary} 0%, ${C.gold} 100%)`,
+        padding: '10px 20px 20px', color: '#fff',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 18, cursor: 'pointer' }}>‹</span>
+          <span style={{ fontSize: 14, fontWeight: 500, opacity: 0.9 }}>推荐详情</span>
+        </div>
+        <h2 style={{ fontSize: 22, fontWeight: 700 }}>山东大学</h2>
+        <p style={{ fontSize: 14, marginTop: 4, opacity: 0.9 }}>计算机科学与技术</p>
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {['985', '双一流', '公办', '济南'].map((t, i) => (
+            <span key={i} style={{
+              fontSize: 11, padding: '2px 8px', borderRadius: 6,
+              background: 'rgba(255,255,255,0.2)', color: '#fff',
+            }}>{t}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Hit Rate Card */}
+      <div style={{ padding: '16px 20px 0' }}>
+        <div style={{
+          background: C.surface, borderRadius: 16, padding: 16,
+          border: `1px solid ${C.divider}`,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 12, color: C.text2 }}>历史命中率</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: C.stable }}>55-65%</span>
+              </div>
+            </div>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: `conic-gradient(${C.stable} 60%, ${C.divider} 0)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%', background: C.surface,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 700, color: C.stable,
+              }}>稳</div>
+            </div>
+          </div>
+
+          {/* Calculation Basis (expandable) */}
+          <div style={{
+            marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.divider}`,
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: C.text1, marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              📊 计算依据
+              <span style={{ fontSize: 10, color: C.text3, fontWeight: 400 }}>· 点击展开 ▼</span>
+            </div>
+            <div style={{ fontSize: 11, color: C.text2, lineHeight: 1.8 }}>
+              <div>· 近3年该专业录取位次区间：10,200 – 13,500</div>
+              <div>· 你的位次：第 12,580 名</div>
+              <div>· 同位次段历史命中率：60%（基于近3年数据）</div>
+              <div>· 位次转换方法：等比例缩放法 + 线性插值法</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Risk Signals */}
+      <div style={{ padding: '12px 20px 0' }}>
+        <div style={{
+          background: C.goldLight, borderRadius: 12, padding: 12,
+          border: `1px solid ${C.gold}30`,
+        }}>
+          <div style={{
+            fontSize: 12, fontWeight: 600, color: C.text1, marginBottom: 6,
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            ⚠️ 风险信号检测
+          </div>
+          <div style={{ fontSize: 11, color: C.text1, lineHeight: 1.6 }}>
+            <div style={{ marginBottom: 4 }}>· 该院校专业组近2年录取位次上升8%，竞争加剧</div>
+            <div style={{ fontSize: 10, color: C.text2 }}>建议：放在稳档前1/3位置，不要作为冲档首选</div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Advice */}
+      <div style={{ padding: '12px 20px 0' }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${C.primaryLight} 0%, #FFF8F0 100%)`,
+          borderRadius: 14, padding: 14, border: `1px solid ${C.primary}20`,
+        }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 6,
+              background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12,
+            }}>🤖</div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.primaryDark }}>AI填报建议</span>
+          </div>
+          <div style={{ fontSize: 12, color: C.text1, lineHeight: 1.7 }}>
+            <p style={{ marginBottom: 6 }}>
+              <b>优势：</b>山东大学计算机专业为国家级特色专业，学科评估A类，与你的选科（物化生）高度匹配。你的位次处于近3年录取区间中段，录取把握较大。
+            </p>
+            <p style={{ marginBottom: 6 }}>
+              <b>建议：</b>放在稳档前1/3位置（约第8-12个志愿），为冲刺档留出空间同时保证稳档核心位置。
+            </p>
+            <p style={{ fontSize: 11, color: C.text2, fontStyle: 'italic' }}>
+              ⚠️ AI建议仅供参考，不构成录取概率预测或确定性承诺。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* School Info */}
+      <div style={{ padding: '12px 20px 0' }}>
+        <div style={{
+          background: C.surface, borderRadius: 12, padding: 14,
+          border: `1px solid ${C.divider}`,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: C.text1, marginBottom: 8 }}>
+            🏫 院校信息
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 11 }}>
+            <div><span style={{ color: C.text2 }}>院校层次：</span><span>985/211/双一流</span></div>
+            <div><span style={{ color: C.text2 }}>院校性质：</span><span>公办</span></div>
+            <div><span style={{ color: C.text2 }}>所在城市：</span><span>济南</span></div>
+            <div><span style={{ color: C.text2 }}>学费：</span><span>5,800元/年</span></div>
+            <div><span style={{ color: C.text2 }}>学制：</span><span>四年</span></div>
+            <div><span style={{ color: C.text2 }}>授予学位：</span><span>工学学士</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Data Source */}
+      <div style={{ padding: '12px 20px 80px' }}>
+        <div style={{
+          fontSize: 10, color: C.text3, textAlign: 'center', lineHeight: 1.6,
+        }}>
+          数据来源：山东省教育招生考试院 · 阳光高考平台<br/>
+          数据年份：2022-2024年 · 更新时间：2025年6月25日
+        </div>
+      </div>
+
+      {/* Bottom Actions */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '10px 20px 16px', background: C.surface,
+        borderTop: `1px solid ${C.divider}`,
+        display: 'flex', gap: 10,
+      }}>
+        <button style={{ ...S.btnGhost, flex: 1, fontSize: 14 }}>📊 对比</button>
+        <button style={{ ...S.btnPrimary, flex: 2, fontSize: 16 }}>+ 加入志愿表</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Review Notes Component
+// ============================================================
+function ReviewNote({ title, items }) {
+  return (
+    <div className="review-note">
+      <div className="rn-title">📋 {title}</div>
+      {items.map((item, i) => (
+        <div key={i} style={{ marginBottom: 4 }}>
+          <span className={`rn-tag rn-tag-${item.type}`}>{item.tag}</span>
+          {item.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// Main App - Overview Layout
+// ============================================================
+function App() {
+  const screens = [
+    {
+      label: '首页 / 启动页',
+      sublabel: 'App入口 · 信任建立 · 断点续填',
+      component: <ScreenHome />,
+      review: [
+        { type: 'opt', tag: '优化', text: '新增「断点续填」卡片，支持Wizard中途退出后恢复' },
+        { type: 'opt', tag: '优化', text: 'MVP试点省份提示前置，避免用户填完才发现不支持' },
+        { type: 'good', tag: '亮点', text: '太阳意象+暖色渐变传递「阳光活力」品牌气质' },
+      ],
+    },
+    {
+      label: 'Step 1 · 基础信息',
+      sublabel: '省份 + 分数 + 位次自动反查 + 身份',
+      component: <ScreenStep1 />,
+      review: [
+        { type: 'good', tag: '亮点', text: '位次反查结果用绿色信息卡突出，强化「系统帮你做」的信任感' },
+        { type: 'opt', tag: '优化', text: '省份选择后即时展示志愿模式提示，降低认知负担' },
+        { type: 'opt', tag: '优化', text: '填写者身份用卡片而非下拉，更适合家长用户的操作习惯' },
+      ],
+    },
+    {
+      label: 'Step 2 · 选科组合',
+      sublabel: '3+1+2模式 · 首选+再选 · 覆盖率提示',
+      component: <ScreenStep2 />,
+      review: [
+        { type: 'good', tag: '亮点', text: '选满后未选科目自动变灰，防止误操作' },
+        { type: 'good', tag: '亮点', text: '可报专业覆盖率用大号绿色数字突出，是关键信任信号' },
+        { type: 'opt', tag: '优化', text: '省份志愿模式提示放在选科区下方，时序更合理' },
+      ],
+    },
+    {
+      label: 'Step 3 · 意向偏好',
+      sublabel: '全部可跳过 · 6个偏好模块 · 权重模板',
+      component: <ScreenStep3 />,
+      review: [
+        { type: 'opt', tag: '优化', text: '按影响优先级重排：黑名单>地域>院校>权重>策略>特殊身份' },
+        { type: 'opt', tag: '优化', text: '权重模板增加迷你比例条可视化，比纯数字更直观' },
+        { type: 'issue', tag: '注意', text: '此屏内容较多，实际开发建议用折叠面板减少首屏信息过载' },
+      ],
+    },
+    {
+      label: 'Step 4 · 确认&生成',
+      sublabel: '信息汇总 · 一键生成 · 加载态',
+      component: <ScreenStep4 />,
+      review: [
+        { type: 'good', tag: '亮点', text: '基础信息与偏好设置分区展示，信息层级清晰' },
+        { type: 'good', tag: '亮点', text: '每项可「修改」直接跳回对应Step，减少返工焦虑' },
+        { type: 'opt', tag: '优化', text: '志愿数量提示（96个）提前告知，管理用户预期' },
+      ],
+    },
+    {
+      label: '推荐结果页',
+      sublabel: '冲稳保垫四档Tab · 推荐卡片 · AI建议',
+      component: <ScreenResults />,
+      review: [
+        { type: 'good', tag: '亮点', text: '四档Tab用暖→冷色阶（橙红→金黄→绿→青），直觉传达风险递减' },
+        { type: 'good', tag: '亮点', text: '每张推荐卡集成命中率+风险信号+AI建议，信息密度合理' },
+        { type: 'opt', tag: '优化', text: '权重摘要条固定在顶部，用户随时可跳转调整' },
+        { type: 'issue', tag: '注意', text: '稳档58个列表较长，建议增加「院校类型」筛选器提升效率' },
+      ],
+    },
+    {
+      label: '推荐详情页',
+      sublabel: '命中率 · 计算依据 · 风险检测 · AI建议',
+      component: <ScreenDetail />,
+      review: [
+        { type: 'good', tag: '亮点', text: '圆环图可视化命中率，比纯数字更有冲击力' },
+        { type: 'good', tag: '亮点', text: 'AI建议区分「优势/建议」结构，附免责声明，合规且专业' },
+        { type: 'opt', tag: '优化', text: '计算依据默认展开（非折叠），信任型产品应主动透明' },
+        { type: 'opt', tag: '优化', text: '数据来源标注到具体机构和更新日期，强化可信度' },
+      ],
+    },
+  ];
+
+  return (
+    <div>
+      {/* Page Header */}
+      <div className="page-header">
+        <h1>高考志愿填报App · 交互原型 Overview</h1>
+        <p className="subtitle">7个核心屏幕 · 阳光活力视觉风格 · 基于PRD V1.0设计 · 含逐屏审查优化</p>
+      </div>
+
+      {/* Design System Summary */}
+      <div className="design-system-bar">
+        <div className="ds-group">
+          <span className="ds-label">主色</span>
+          <div className="ds-swatch" style={{ background: C.primary }} />
+          <span className="ds-label" style={{ fontSize: 11 }}>#FF7A45 阳光橙</span>
+        </div>
+        <div className="ds-group">
+          <span className="ds-label">辅色</span>
+          <div className="ds-swatch" style={{ background: C.gold }} />
+          <div className="ds-swatch" style={{ background: C.green }} />
+          <div className="ds-swatch" style={{ background: C.blue }} />
+        </div>
+        <div className="ds-group">
+          <span className="ds-label">四档</span>
+          <div className="ds-swatch" style={{ background: C.rush }} />
+          <div className="ds-swatch" style={{ background: C.stable }} />
+          <div className="ds-swatch" style={{ background: C.preserve }} />
+          <div className="ds-swatch" style={{ background: C.cushion }} />
+          <span className="ds-label" style={{ fontSize: 11 }}>冲→稳→保→垫</span>
+        </div>
+        <div className="ds-group">
+          <span className="ds-label">底色</span>
+          <div className="ds-swatch" style={{ background: C.bg, border: '1px solid #E8E8E8' }} />
+          <span className="ds-label" style={{ fontSize: 11 }}>#FFF9F5 暖白</span>
+        </div>
+      </div>
+
+      {/* Screens Grid */}
+      <div className="screens-container">
+        {screens.map((s, i) => (
+          <div key={i} className="screen-block">
+            <div className="screen-label">{i + 1}. {s.label}</div>
+            <div className="screen-sublabel">{s.sublabel}</div>
+            <IosFrame time="9:41" battery={85}>
+              {s.component}
+            </IosFrame>
+            <ReviewNote title={`设计审查 · ${s.label}`} items={s.review} />
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        textAlign: 'center', padding: '32px 24px 48px',
+        fontSize: 12, color: C.text3, lineHeight: 1.8,
+      }}>
+        <p>基于 PRD V1.0 设计 · MVP试点省份：山东/河北/湖南</p>
+        <p>视觉风格：阳光 · 活力 · 蓬勃向上 · 明亮温暖色调</p>
+        <p style={{ marginTop: 8, fontSize: 11 }}>交互原型 Overview · 双击打开即可查看全部屏幕</p>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

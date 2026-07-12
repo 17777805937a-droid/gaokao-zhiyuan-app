@@ -1,0 +1,22 @@
+{
+  "coverageMap3_3": {
+    "physics": 90.5,
+    "chemistry": 85.3,
+    "biology": 65.2,
+    "history": 50.1,
+    "geography": 58.7,
+    "politics": 45.3
+  },
+  "firstSubjectCoeff3_1_2": {
+    "physics": {
+      "base": 96.0,
+      "withChemistry": 97.5,
+      "withChemistryBiology": 98.2
+    },
+    "history": {
+      "base": 52.0,
+      "withChemistry": 58.3,
+      "withChemistryBiology": 60.1
+    }
+  }
+}

@@ -1,0 +1,89 @@
+%% 高考志愿填报APP — 表单校验与状态流转序列图
+
+sequenceDiagram
+    participant U as 用户
+    participant HP as HomePage
+    participant FS as formStore (Zustand)
+    participant LS as localStorage
+    participant S1 as Step1BasicInfo
+    participant S2 as Step2Subjects
+    participant S3 as Step3Preferences
+    participant S4 as Step4Confirm
+    participant Hook as useScoreRankLookup
+    participant RS as recommendationStore
+    participant RP as ResultsPage
+
+    %% 断点续填场景
+    Note over U,LS: 场景1：断点续填
+    U->>HP: 打开APP
+    HP->>FS: 读取 persisted state
+    FS->>LS: 自动恢复 localStorage 草稿
+    FS-->>HP: hasDraft=true, currentStep=2
+    HP-->>U: 显示"继续上次填报"卡片
+    U->>HP: 点击继续
+    HP->>S2: navigate('/wizard/step2')
+    S2->>FS: 读取已保存的表单数据
+    S2-->>U: 回填已选科目，恢复到 Step 2
+
+    %% Step 1 填写 + 自动保存 + 位次反查
+    Note over U,RS: 场景2：Step1 填写 → 位次反查 → 自动保存
+    U->>S1: 选择省份(山东)
+    S1->>FS: setField('provinceCode','37')
+    FS->>LS: persist 自动写入
+    S1-->>U: 联动显示"3+3模式"标签 + 省份提示
+
+    U->>S1: 输入分数 623, blur
+    S1->>FS: setField('totalScore', 623)
+    S1->>Hook: 触发位次反查
+    Hook->>FS: setField('rankLookupStatus','loading')
+    Hook-->>S1: 显示 loading 动画
+    Note right of Hook: 模拟异步查询一分一段表
+    Hook->>FS: setField('autoRank',12580)
+    Hook->>FS: setField('provinceRank',12580)
+    Hook->>FS: setField('rankLookupStatus','success')
+    FS->>LS: persist 自动写入
+    S1-->>U: 展示绿色信息卡"省位次约第12,580名"
+
+    U->>S1: 选择身份(考生本人)
+    S1->>FS: setField('fillerRole','student')
+    FS->>LS: persist 自动写入
+
+    %% Step1 → Step2 前置校验
+    U->>S1: 点击"下一步"
+    S1->>S1: Zod 校验(provinceCode+totalScore+provinceRank+fillerRole)
+    alt 校验通过
+        S1->>S2: navigate('/wizard/step2')
+    else 校验失败
+        S1-->>U: 显示错误提示，按钮禁用
+    end
+
+    %% Step 2 选科 + 实时拦截
+    Note over U,S2: 场景3：Step2 选科非法组合拦截
+    U->>S2: 选择物理(首选)
+    S2->>FS: setField('selectedSubjects',['physics'])
+    U->>S2: 尝试再选物理(重复)
+    S2->>S2: useSubjectValidation 实时拦截
+    S2-->>U: 提示"物理已选"，阻止选择
+
+    U->>S2: 选化学+生物(再选)
+    S2->>FS: setField('selectedSubjects',['physics','chemistry','biology'])
+    S2->>S2: 校验通过(首选1+再选2)
+    S2-->>U: 显示覆盖率"95.2%"
+
+    %% Step 3 跳过
+    Note over U,S3: 场景4：Step3 跳过
+    U->>S3: 点击"跳过本步"
+    S3->>S3: 应用默认偏好值
+    S3->>S4: navigate('/wizard/step4')
+
+    %% Step 4 生成推荐
+    Note over U,RP: 场景5：Step4 确认 → 生成推荐 → 结果页
+    U->>S4: 点击"一键生成推荐方案"
+    S4-->>U: 全屏 LoadingOverlay (轮播文字)
+    S4->>RS: setGenerating(true)
+    Note right of RS: 调用后端推荐API(或Mock)
+    RS->>RS: setRecommendations(data)
+    RS->>FS: setField('hasDraft', false)
+    S4->>RP: navigate('/results', replace:true)
+    RP->>RS: 读取推荐结果
+    RP-->>U: 展示四档Tab + 推荐卡片列表

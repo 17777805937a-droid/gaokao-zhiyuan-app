@@ -1,0 +1,26 @@
+{
+  "subjects31": [
+    { "value": "physics", "label": "物理", "icon": "⚡", "type": "first" },
+    { "value": "history", "label": "历史", "icon": "📖", "type": "first" },
+    { "value": "chemistry", "label": "化学", "icon": "🧪", "type": "second" },
+    { "value": "biology", "label": "生物", "icon": "🧬", "type": "second" },
+    { "value": "geography", "label": "地理", "icon": "🌍", "type": "second" },
+    { "value": "politics", "label": "政治", "icon": "⚖️", "type": "second" }
+  ],
+  "subjects33": [
+    { "value": "physics", "label": "物理", "icon": "⚡", "type": "second" },
+    { "value": "history", "label": "历史", "icon": "📖", "type": "second" },
+    { "value": "chemistry", "label": "化学", "icon": "🧪", "type": "second" },
+    { "value": "biology", "label": "生物", "icon": "🧬", "type": "second" },
+    { "value": "geography", "label": "地理", "icon": "🌍", "type": "second" },
+    { "value": "politics", "label": "政治", "icon": "⚖️", "type": "second" }
+  ],
+  "labels": {
+    "physics": "物理",
+    "history": "历史",
+    "chemistry": "化学",
+    "biology": "生物",
+    "geography": "地理",
+    "politics": "政治"
+  }
+}

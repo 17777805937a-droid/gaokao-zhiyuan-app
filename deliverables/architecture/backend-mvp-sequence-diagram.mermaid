@@ -1,0 +1,81 @@
+%% 高考志愿填报APP — 后端 MVP 调用时序图
+%% 阶段一：前端 fetch → Vite Proxy → Express 后端 → 硬编码数据返回
+
+sequenceDiagram
+    participant FE as 前端 (Vite:5173)
+    participant Proxy as Vite Proxy
+    participant BE as 后端 (Express:8080)
+    participant MW as 中间件链
+    participant Ctrl as Controller
+    participant Svc as Service
+    participant Data as 硬编码数据
+
+    %% ===== 位次反查 =====
+    Note over FE: Step1: 用户输入分数触发位次反查
+    FE->>FE: getScoreRank(provinceCode, subjectCategory, score) [async]
+    FE->>Proxy: POST /api/v1/score-rank/lookup
+    Proxy->>BE: 转发请求 (changeOrigin: true)
+    BE->>MW: cors → json → responseMiddleware
+    MW->>Ctrl: scoreRankController.lookup(req)
+    Ctrl->>Ctrl: validateScoreRankRequest(body)
+    alt 校验失败
+        Ctrl-->>BE: throw BusinessException(1001, msg)
+        BE-->>Proxy: { code:1001, message:"...", data:null }
+        Proxy-->>FE: 透传错误响应
+    else 校验通过
+        Ctrl->>Svc: scoreRankService.lookup({ provinceCode, subjectCategory, score })
+        Svc->>Data: 读取 provinceFactor 常量
+        Data-->>Svc: { '37':1.2, '13':1.0, '43':0.9 }
+        Svc->>Svc: factor = provinceFactor[code] * (history?0.4:1.0)
+        Svc->>Svc: baseRank = round((750-score)*(80+score*0.08)*factor)
+        Svc->>Svc: cumulativeCount = max(baseRank, 1)
+        Svc->>Svc: countAtScore = max(round(50-(750-score)*0.06), 5)
+        Svc-->>Ctrl: { cumulativeCount, countAtScore }
+        Ctrl-->>BE: res.success(data) → { code:0, message:"ok", data:{...} }
+        BE-->>Proxy: HTTP 200 + JSON body
+        Proxy-->>FE: 透传响应
+        FE->>FE: json.code===0 → return json.data
+        FE->>FE: setField('autoRank', result.cumulativeCount)
+        FE->>FE: setField('rankLookupStatus', 'success')
+    end
+
+    %% ===== 推荐生成 =====
+    Note over FE: Step4: 用户点击"生成推荐方案"
+    FE->>FE: handleGenerate() [async]
+    FE->>FE: setGenerating(true)
+    FE->>Proxy: POST /api/v1/recommendations/generate
+    Proxy->>BE: 转发请求 (changeOrigin: true)
+    BE->>MW: cors → json → responseMiddleware
+    MW->>Ctrl: recommendationController.generate(req)
+    Ctrl->>Ctrl: validateGenerateRequest(body)
+    alt 校验失败
+        Ctrl-->>BE: throw BusinessException(1001, msg)
+        BE-->>Proxy: { code:1001, message:"...", data:null }
+        Proxy-->>FE: 透传错误响应
+        FE->>FE: catch → setGenerating(false)
+    else 校验通过
+        Ctrl->>Svc: recommendationService.generate({ provinceCode, userRank })
+        Svc->>Data: 读取 schoolPool(8) / majorPool(10) / tierHitRateRanges / riskTemplates(2) / aiAdviceTemplates(4)
+        Data-->>Svc: 全部素材常量
+        Svc->>Svc: rankBase = round(userRank/1000)*1000
+        loop rush × 19
+            Svc->>Svc: makeRec('rush', i, i, i)
+        end
+        loop stable × 12
+            Svc->>Svc: makeRec('stable', i, i+1, i+2)
+        end
+        loop preserve × 14
+            Svc->>Svc: makeRec('preserve', i, i+2, i+4)
+        end
+        loop cushion × 5
+            Svc->>Svc: makeRec('cushion', i, i+3, i+6)
+        end
+        Svc-->>Ctrl: TierRecommendations { rush:[19], stable:[12], preserve:[14], cushion:[5] }
+        Ctrl-->>BE: res.success(data) → { code:0, message:"ok", data:{...} }
+        BE-->>Proxy: HTTP 200 + JSON body
+        Proxy-->>FE: 透传响应
+        FE->>FE: json.code===0 → return json.data
+        FE->>FE: recommendationStore.setRecommendations(data)
+        FE->>FE: setGenerating(false)
+        FE->>FE: navigate('/results', { replace:true })
+    end

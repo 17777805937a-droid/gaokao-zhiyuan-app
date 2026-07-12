@@ -1,0 +1,11 @@
+{
+  "schoolLevels": ["985", "211", "双一流", "普通本科", "民办本科", "独立学院"],
+  "schoolNatures": ["公办", "民办", "中外合作"],
+  "economicZones": ["京津冀", "江浙沪", "大湾区", "成渝", "长江中游"],
+  "specialIdentities": [
+    { "value": "minority", "label": "少数民族", "icon": "🌍" },
+    { "value": "rural", "label": "农村专项", "icon": "🌾" },
+    { "value": "art_sport", "label": "艺术体育", "icon": "🎨" },
+    { "value": "martyr", "label": "烈士子女", "icon": "🎖️" }
+  ]
+}

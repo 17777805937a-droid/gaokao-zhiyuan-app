@@ -1,0 +1,305 @@
+%% 高考志愿填报APP — 类图 / 组件关系图
+
+classDiagram
+    direction TB
+
+    %% ========== 状态层 ==========
+    class FormStore {
+        +currentStep: number
+        +maxCompletedStep: number
+        +hasDraft: boolean
+        +provinceCode: string|null
+        +subjectCategory: string|null
+        +totalScore: number|null
+        +provinceRank: number|null
+        +autoRank: number|null
+        +rankLookupStatus: string
+        +fillerRole: string
+        +selectedSubjects: string[]
+        +weightMode: string
+        +schoolWeight: number
+        +majorWeight: number
+        +cityWeight: number
+        +strategyMode: string
+        +excludedMajors: string[]
+        +preferredCities: string[]
+        +setField(key, value) void
+        +setStep(step) void
+        +resetForm() void
+        +loadDraft() void
+    }
+
+    class RecommendationStore {
+        +recommendations: object
+        +activeTier: string
+        +totalCount: number
+        +generating: boolean
+        +generatedAt: string|null
+        +setRecommendations(data) void
+        +setActiveTier(tier) void
+        +setGenerating(generating) void
+    }
+
+    %% ========== Hooks 层 ==========
+    class useFormAutoSave {
+        +fieldName: string
+        +save() void
+    }
+
+    class useScoreRankLookup {
+        +loading: boolean
+        +rank: number|null
+        +error: string|null
+        +lookup(score, province, category) void
+    }
+
+    class useSubjectValidation {
+        +isValid: boolean
+        +error: string|null
+        +coverageRate: number
+        +validate(subjects, province) boolean
+    }
+
+    %% ========== 公共组件 ==========
+    class ProgressBar {
+        +step: number
+        +total: number
+        +label: string
+    }
+
+    class NavBar {
+        +title: string
+        +showBack: boolean
+        +onBack: function
+        +rightSlot: ReactNode
+    }
+
+    class BottomCTA {
+        +primaryText: string
+        +onPrimaryClick: function
+        +primaryDisabled: boolean
+        +secondaryText: string
+        +skipText: string
+        +hint: string
+        +gradient: boolean
+    }
+
+    class CardSelector~T~ {
+        +options: CardSelectorOption[]
+        +value: T
+        +values: T[]
+        +multiple: boolean
+        +columns: number
+        +maxSelect: number
+        +onChange: function
+    }
+
+    class TagInput {
+        +label: string
+        +tags: string[]
+        +variant: string
+        +maxTags: number
+        +searchable: boolean
+        +onAdd: function
+        +onRemove: function
+    }
+
+    class InfoTip {
+        +type: string
+        +icon: string
+        +title: string
+        +closable: boolean
+    }
+
+    class LoadingOverlay {
+        +visible: boolean
+        +messages: string[]
+        +interval: number
+    }
+
+    class ActionSheet {
+        +visible: boolean
+        +title: string
+        +options: ActionSheetOption[]
+        +selectedValue: string
+        +onSelect: function
+        +onClose: function
+    }
+
+    %% ========== Wizard 业务组件 ==========
+    class ProvincePicker {
+        +value: string
+        +onChange: function
+        +onModeChange: function
+    }
+
+    class ScoreInput {
+        +value: number|null
+        +onChange: function
+        +onBlur: function
+        +provinceCode: string
+        +subjectCategory: string
+    }
+
+    class RankDisplay {
+        +loading: boolean
+        +rank: number|null
+        +rankRange: tuple
+        +sameScoreCount: number
+        +error: string
+        +userRank: number|null
+        +onUserRankChange: function
+        +deviationWarning: boolean
+    }
+
+    class SubjectSelector {
+        +provinceCode: string
+        +subjectCategory: string
+        +selectedSubjects: string[]
+        +onCategoryChange: function
+        +onSubjectsChange: function
+        +coverageRate: number
+    }
+
+    class WeightSelector {
+        +mode: string
+        +weights: object
+        +onModeChange: function
+        +onWeightsChange: function
+    }
+
+    class StrategySelector {
+        +value: string
+        +onChange: function
+        +hasMajorPreference: boolean
+    }
+
+    %% ========== 推荐结果组件 ==========
+    class TierTabs {
+        +tiers: array
+        +activeTier: string
+        +onChange: function
+    }
+
+    class RecCard {
+        +school: string
+        +major: string
+        +tags: string[]
+        +tier: string
+        +hitRate: string
+        +risks: RiskSignal[]
+        +aiAdvice: string
+        +dataSource: string
+        +isNewMajor: boolean
+        +onClick: function
+    }
+
+    class WeightSummaryBar {
+        +mode: string
+        +weights: object
+        +onAdjust: function
+    }
+
+    class HitRateRing {
+        +hitRate: string
+        +tier: string
+        +size: number
+    }
+
+    class RiskSignal {
+        +type: string
+        +level: string
+        +message: string
+    }
+
+    %% ========== 页面组件 ==========
+    class HomePage {
+        +renderTrustCards()
+        +renderResumeCard()
+        +renderMVPNotice()
+    }
+
+    class Step1BasicInfo {
+        +useFormAutoSave()
+        +useScoreRankLookup()
+        +validateStep1()
+    }
+
+    class Step2Subjects {
+        +useSubjectValidation()
+        +renderSubjectUI()
+        +validateStep2()
+    }
+
+    class Step3Preferences {
+        +applyDefaults()
+        +validateStep3()
+    }
+
+    class Step4Confirm {
+        +renderSummaryCard()
+        +handleGenerate()
+    }
+
+    class ResultsPage {
+        +renderTierTabs()
+        +renderRecCards()
+        +handleRegenerate()
+    }
+
+    class DetailPage {
+        +renderHitRateRing()
+        +renderCalcBasis()
+        +renderRiskSignals()
+        +renderAIAdvice()
+    }
+
+    %% ========== 关系 ==========
+    FormStore <-- useFormAutoSave : 读取/写入
+    FormStore <-- useScoreRankLookup : 写入反查结果
+    FormStore <-- useSubjectValidation : 读取选科数据
+    RecommendationStore <-- ResultsPage : 读取推荐数据
+    RecommendationStore <-- DetailPage : 读取详情
+
+    HomePage --> FormStore : 检查 hasDraft
+    Step1BasicInfo --> ProvincePicker
+    Step1BasicInfo --> ScoreInput
+    Step1BasicInfo --> RankDisplay
+    Step1BasicInfo --> CardSelector
+    Step1BasicInfo --> ProgressBar
+    Step1BasicInfo --> BottomCTA
+    Step1BasicInfo --> InfoTip
+
+    Step2Subjects --> SubjectSelector
+    Step2Subjects --> ProgressBar
+    Step2Subjects --> BottomCTA
+    Step2Subjects --> InfoTip
+
+    Step3Preferences --> TagInput
+    Step3Preferences --> CardSelector
+    Step3Preferences --> WeightSelector
+    Step3Preferences --> StrategySelector
+    Step3Preferences --> ProgressBar
+    Step3Preferences --> BottomCTA
+
+    Step4Confirm --> ProgressBar
+    Step4Confirm --> BottomCTA
+    Step4Confirm --> LoadingOverlay
+
+    ResultsPage --> TierTabs
+    ResultsPage --> RecCard
+    ResultsPage --> WeightSummaryBar
+    ResultsPage --> BottomCTA
+
+    DetailPage --> HitRateRing
+    DetailPage --> RiskSignal
+    DetailPage --> BottomCTA
+
+    ProvincePicker --> ActionSheet
+    ScoreInput --> useFormAutoSave
+    RankDisplay --> useScoreRankLookup
+    SubjectSelector --> useSubjectValidation
+    WeightSelector --> CardSelector
+
+    RecCard --> RiskSignal
+    RecCard --> HitRateRing
