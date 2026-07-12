@@ -6,6 +6,12 @@
 
 ---
 
+## ⓪ 把本地项目推到 GitHub（前置必做，否则 Railway/Vercel 选不到仓库）
+
+> 你的项目之前只在本地、从未推到 GitHub，所以 Railway 导入列表为空。本地我已帮你 `git init` + 提交（158 文件，密钥/依赖已排除）。详细按钮级步骤见 **`deploy/PUSH-TO-GITHUB.md`**：建空仓库 → 生成 PAT → `git push -u origin main` → 回到 Railway 点 Refresh。
+
+---
+
 ## ① Supabase（建库 + 灌种子）
 
 1. 打开 https://supabase.com → **New Project**
