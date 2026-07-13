@@ -16,6 +16,7 @@ import type {
 } from '@/types/recommendation';
 import type { RankLookupResult } from '@/types/form';
 import type { ApiResponse } from '@/types/common';
+import { lookupScoreRankLocal, generateRecommendationsLocally } from '@/data/dynamic/localEngine';
 
 /** 分数→位次：省份系数表（保留接口定义，数据已迁移至后端） */
 export interface ScoreRankMockData {
@@ -157,22 +158,22 @@ export async function waitForBackendReady(maxMs = 30000): Promise<boolean> {
 export async function getRecommendationsWithRetry(
   req: RecommendationRequest,
   onStatus?: (msg: string) => void,
-  maxAttempts = 3,
+  maxAttempts = 2,
 ): Promise<TierRecommendations> {
-  let lastErr: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await getRecommendations(req);
     } catch (err) {
-      lastErr = err;
       if (attempt < maxAttempts) {
         onStatus?.(`后端服务正在唤醒，请稍候…（第 ${attempt} 次重试）`);
         await wakeBackend();
-        await waitForBackendReady(25000);
+        await waitForBackendReady(12000);
       }
     }
   }
-  throw lastErr;
+  // 后端仍不可用 → 本地兜底引擎生成，保证一定能出方案（修复"无法生成"）
+  onStatus?.('后端暂不可用，已切换本地引擎生成方案');
+  return generateRecommendationsLocally(req);
 }
 
 /**
@@ -210,23 +211,28 @@ export async function getScoreRank(
   category: 'physics' | 'history' | 'all',
   score: number,
 ): Promise<RankLookupResult> {
-  const subjectCategory = mapSubjectCategory(category);
+  try {
+    const subjectCategory = mapSubjectCategory(category);
 
-  const res = await fetchWithTimeout('/api/v1/score-rank/lookup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provinceCode, subjectCategory, score }),
-  });
+    const res = await fetchWithTimeout('/api/v1/score-rank/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provinceCode, subjectCategory, score }),
+    }, 10000);
 
-  if (!res.ok) {
-    throw new Error(`位次查询失败（HTTP ${res.status}）：后端服务可能未启动或网络异常`);
+    if (!res.ok) {
+      throw new Error(`位次查询失败（HTTP ${res.status}）`);
+    }
+
+    const json: ApiResponse<RankLookupResult> = await safeParseJson<ApiResponse<RankLookupResult>>(res, '位次查询失败');
+    if (json.code !== 0 || !json.data) {
+      throw new Error(json.message || '位次反查失败');
+    }
+    return { ...json.data, source: 'backend' };
+  } catch {
+    // 后端不可达 / 异常 → 本地兜底，保证位次一定能查到（修复"位次无法自动查询"）
+    return { ...lookupScoreRankLocal(provinceCode, category, score), source: 'local' };
   }
-
-  const json: ApiResponse<RankLookupResult> = await safeParseJson<ApiResponse<RankLookupResult>>(res, '位次查询失败');
-  if (json.code !== 0 || !json.data) {
-    throw new Error(json.message || '位次反查失败');
-  }
-  return json.data;
 }
 
 /**
@@ -246,7 +252,7 @@ export async function getRecommendations(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
-  });
+  }, 12000);
 
   if (!res.ok) {
     throw new Error(`推荐生成失败（HTTP ${res.status}）：后端服务可能未启动或网络异常`);

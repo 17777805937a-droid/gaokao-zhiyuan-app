@@ -28,6 +28,7 @@ export default function Step1BasicInfo() {
   const rankRange = useFormStore((s) => s.rankRange);
   const sameScoreCount = useFormStore((s) => s.sameScoreCount);
   const rankLookupStatus = useFormStore((s) => s.rankLookupStatus);
+  const rankSource = useFormStore((s) => s.rankSource);
   const fillerRole = useFormStore((s) => s.fillerRole);
   const setField = useFormStore((s) => s.setField);
   const setStep = useFormStore((s) => s.setStep);
@@ -94,6 +95,7 @@ export default function Step1BasicInfo() {
           sameScoreCount={sameScoreCount ?? undefined}
           error={rankLookupStatus === 'error' ? '位次查询失败，请手动输入' : undefined}
           userRank={provinceRank}
+          source={rankSource ?? undefined}
           onUserRankChange={(rank) => setField('provinceRank', rank)}
           deviationWarning={shouldShowDeviationWarning(autoRank, provinceRank)}
         />

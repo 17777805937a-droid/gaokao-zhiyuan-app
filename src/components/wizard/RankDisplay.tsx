@@ -18,6 +18,7 @@ interface RankDisplayProps {
   userRank: number | null;
   onUserRankChange: (rank: number | null) => void;
   deviationWarning?: boolean;
+  source?: 'backend' | 'local';
 }
 
 export function RankDisplay({
@@ -29,6 +30,7 @@ export function RankDisplay({
   userRank,
   onUserRankChange,
   deviationWarning = false,
+  source,
 }: RankDisplayProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -165,7 +167,14 @@ export function RankDisplay({
       <>
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-base">✅</span>
-          <span className="text-sm font-semibold text-green-dark">省位次已自动查询</span>
+          <span className="text-sm font-semibold text-green-dark">
+            {source === 'local' ? '位次已本地估算' : '省位次已自动查询'}
+          </span>
+          {source === 'local' && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold-light text-gold font-medium">
+              离线引擎
+            </span>
+          )}
         </div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-xs text-text-2">约第</span>

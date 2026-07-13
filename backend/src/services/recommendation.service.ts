@@ -174,17 +174,18 @@ function generateRecommendationsByRules(
     };
   }
 
+  // 专业索引 stride=4 跨档错开，保证 50 条推荐覆盖更多不同专业
   const rush: Recommendation[] = Array.from({ length: COUNT.rush }, (_, i) =>
-    makeRec('rush', i, i, i),
+    makeRec('rush', i, i, i * 4),
   );
   const stable: Recommendation[] = Array.from({ length: COUNT.stable }, (_, i) =>
-    makeRec('stable', i, i + 1, i + 2),
+    makeRec('stable', i, i + 1, i * 4 + 1),
   );
   const preserve: Recommendation[] = Array.from({ length: COUNT.preserve }, (_, i) =>
-    makeRec('preserve', i, i + 2, i + 4),
+    makeRec('preserve', i, i + 2, i * 4 + 2),
   );
   const cushion: Recommendation[] = Array.from({ length: COUNT.cushion }, (_, i) =>
-    makeRec('cushion', i, i + 3, i + 6),
+    makeRec('cushion', i, i + 3, i * 4 + 3),
   );
 
   return { rush, stable, preserve, cushion };

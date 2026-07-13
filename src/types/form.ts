@@ -38,6 +38,8 @@ export interface WeightConfig {
 export interface RankLookupResult {
   cumulativeCount: number;
   countAtScore: number;
+  /** 数据来源：backend=后端服务，local=前端本地兜底引擎 */
+  source?: 'backend' | 'local';
 }
 
 /** 完整表单数据 */
@@ -51,6 +53,7 @@ export interface FormData {
   rankRange: [number, number] | null;
   sameScoreCount: number | null;
   rankLookupStatus: RankLookupStatus;
+  rankSource?: 'backend' | 'local' | null; // 位次数据来源（后端/本地兜底）
   fillerRole: FillerRole | null; // F-06
 
   // —— Step 2 选科 ——

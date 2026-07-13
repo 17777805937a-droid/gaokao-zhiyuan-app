@@ -32,6 +32,7 @@ const initialState: FormData = {
   rankRange: null,
   sameScoreCount: null,
   rankLookupStatus: 'idle' as RankLookupStatus,
+  rankSource: null,
   fillerRole: null,
 
   // Step 2

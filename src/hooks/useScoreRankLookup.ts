@@ -7,7 +7,7 @@ import { useEffect, useCallback } from 'react';
 import { useFormStore } from '@/store/formStore';
 import type { RankLookupResult } from '@/types/form';
 import type { TierRecommendations, RecommendationRequest } from '@/types/recommendation';
-import { getScoreRank, getRecommendations } from '@/data/dynamic';
+import { getScoreRank, getRecommendationsWithRetry } from '@/data/dynamic';
 
 /**
  * 位次反查（异步，调用后端 API）
@@ -57,6 +57,7 @@ export function useScoreRankLookup() {
           setField('provinceRank', result.cumulativeCount);
           setField('rankRange', [result.cumulativeCount - result.countAtScore + 1, result.cumulativeCount]);
           setField('sameScoreCount', result.countAtScore);
+          setField('rankSource', result.source ?? null);
           setField('rankLookupStatus', 'success');
         } else {
           setField('rankLookupStatus', 'error');
@@ -90,5 +91,5 @@ export function useScoreRankLookup() {
 export async function generateMockRecommendations(
   req: RecommendationRequest,
 ): Promise<TierRecommendations> {
-  return getRecommendations(req);
+  return getRecommendationsWithRetry(req);
 }
