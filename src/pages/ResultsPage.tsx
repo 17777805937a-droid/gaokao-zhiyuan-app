@@ -2,7 +2,7 @@
  * 推荐结果页 — 四档 Tab 切换 + 推荐列表 + 权重摘要
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -37,11 +37,27 @@ export default function ResultsPage() {
   const setActiveTier = useRecommendationStore((s) => s.setActiveTier);
   const getActiveRecommendations = useRecommendationStore((s) => s.getActiveRecommendations);
 
-  // —— 表单 Store（权重信息） ——
+  // —— 表单 Store（权重信息 + 偏好） ——
   const weightMode = useFormStore((s) => s.weightMode);
   const schoolWeight = useFormStore((s) => s.schoolWeight);
   const majorWeight = useFormStore((s) => s.majorWeight);
   const cityWeight = useFormStore((s) => s.cityWeight);
+  const preferredMajors = useFormStore((s) => s.preferredMajors);
+  const preferredCities = useFormStore((s) => s.preferredCities);
+  const preferredLevels = useFormStore((s) => s.preferredLevels);
+
+  // 检测「偏好已变更但结果页仍是旧生成」→ 提示用户重新生成
+  const lastGeneratedPrefs = useRecommendationStore((s) => s.lastGeneratedPrefs);
+  const prefsChanged = useMemo(() => {
+    if (!lastGeneratedPrefs) return false;
+    const eq = (a: string[], b: string[]) =>
+      a.length === b.length && a.every((x, i) => x === b[i]);
+    return (
+      !eq(lastGeneratedPrefs.preferredMajors, preferredMajors) ||
+      !eq(lastGeneratedPrefs.preferredCities, preferredCities) ||
+      !eq(lastGeneratedPrefs.preferredLevels, preferredLevels)
+    );
+  }, [lastGeneratedPrefs, preferredMajors, preferredCities, preferredLevels]);
 
   // 构建四档 Tab 信息
   const tiers: TierInfo[] = TIER_CONFIGS.map((t) => {
@@ -89,6 +105,21 @@ export default function ResultsPage() {
       <div className="sticky top-0 z-10 bg-[var(--color-bg)]">
         <NavBar title="推荐结果" showBack onBack={() => navigate('/')} />
       </div>
+
+      {/* 偏好已变更提示（改了偏好但结果页仍是旧生成时） */}
+      {prefsChanged && (
+        <div className="px-4 mt-3">
+          <div
+            className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+            style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#b45309' }}
+          >
+            <span>⚠️</span>
+            <span>
+              您的偏好已变更，当前结果仍为旧方案。请点击底部「重新生成」以应用新偏好。
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 权重摘要条 */}
       <div className="px-4">

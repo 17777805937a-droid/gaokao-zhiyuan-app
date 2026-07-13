@@ -19,7 +19,7 @@ import {
   getVolunteerUnitDesc,
 } from '@/utils/provinceConfig';
 import { formatSubjects, formatWeights } from '@/utils/format';
-import { WEIGHT_TEMPLATES } from '@/config/constants';
+import { WEIGHT_TEMPLATES, COMMON_MAJORS } from '@/config/constants';
 import type { StrategyMode, FillerRole } from '@/types/form';
 
 /** 策略模式显示名称映射 */
@@ -180,6 +180,14 @@ export default function Step4Confirm() {
             <SummaryRow
               label="心仪专业"
               value={preferredMajors.length > 0 ? preferredMajors.join('、') : '未设置'}
+            />
+            <SummaryRow
+              label="生成专业池"
+              value={
+                preferredMajors.length > 0
+                  ? `仅 ${preferredMajors.length} 个偏好专业`
+                  : `全部专业（${COMMON_MAJORS.length} 个）`
+              }
             />
             <SummaryRow
               label="期望城市"
