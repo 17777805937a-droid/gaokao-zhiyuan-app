@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { FormData, WeightMode, StrategyMode, RankLookupStatus } from '@/types/form';
+import { PROVINCES } from '@/data/static';
 
 interface FormState extends FormData {
   // —— Wizard 步骤管理 ——
@@ -75,10 +76,19 @@ export const useFormStore = create<FormState>()(
           // 当省份变更时，清空选科和位次相关数据
           if (key === 'provinceCode' && value !== state.provinceCode) {
             const newCode = value as string | null;
+            // 根据高考模式自动设置默认选科类别：
+            // 3+3 模式（浙江/上海/北京等）→ comprehensive；
+            // 3+1+2 模式 → 默认 physics（Step2 可改）；
+            // 确保 subjectCategory 不为 null，否则位次反查 hook 的守卫条件会跳过查询
+            const p = newCode ? PROVINCES.find((x) => x.code === newCode) : null;
+            const mode = p?.mode ?? '3+1+2';
+            const defaultCategory = mode === '3+3'
+              ? ('comprehensive' as const)
+              : ('physics' as const);
             return {
               [key]: value,
               selectedSubjects: [],
-              subjectCategory: newCode === '37' ? 'comprehensive' : null,
+              subjectCategory: defaultCategory,
               provinceRank: null,
               autoRank: null,
               rankRange: null,

@@ -43,14 +43,16 @@ export function useScoreRankLookup() {
   const setField = useFormStore((s) => s.setField);
 
   const lookup = useCallback(() => {
-    if (!totalScore || !provinceCode || !subjectCategory) {
+    if (!totalScore || !provinceCode) {
       return;
     }
+    // subjectCategory 为 null 时默认 comprehensive（兼容 3+3 模式未显式设置的场景）
+    const effectiveCategory = subjectCategory ?? 'comprehensive';
 
     setField('rankLookupStatus', 'loading');
 
-    // 调用后端 API（异步）
-    mockScoreRankLookup(provinceCode, subjectCategory, totalScore)
+    // 调用后端 API（异步），失败时本地兜底引擎自动接管
+    mockScoreRankLookup(provinceCode, effectiveCategory, totalScore)
       .then((result) => {
         if (result) {
           setField('autoRank', result.cumulativeCount);
@@ -73,11 +75,11 @@ export function useScoreRankLookup() {
     lookup();
   }, [lookup]);
 
-  // 分数变化时自动反查
+  // 分数/省份变化时自动反查
   useEffect(() => {
     lookup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalScore, provinceCode, subjectCategory]);
+  }, [totalScore, provinceCode, subjectCategory, setField]);
 
   return { triggerLookup };
 }
