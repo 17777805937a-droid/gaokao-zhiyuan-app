@@ -157,10 +157,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MVP 省份提示 */}
+      {/* 省份覆盖提示 */}
       <div className="px-4 mt-3">
-        <InfoTip type="info" title="MVP 试点">
-          当前支持山东、河北、湖南三省，更多省份即将上线
+        <InfoTip type="info" title="省份覆盖">
+          已支持全国 31 个省 / 自治区 / 直辖市，第一步选好高考省份即可生成冲稳保垫方案
         </InfoTip>
       </div>
 
