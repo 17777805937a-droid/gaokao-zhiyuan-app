@@ -158,6 +158,31 @@ function mapSubjectCategory(
 // 1. 分数 → 位次反查（本地公式，对齐后端 fallbackLookup）
 // ============================================================
 
+/**
+ * 标准正态累积分布函数 Φ(z) 近似
+ * 采用 Abramowitz & Stegun 26.2.17 公式（精度 < 7.5e-8）
+ */
+function normalCdf(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2); // φ(z)
+  const p =
+    d *
+    t *
+    (0.319381530 +
+      t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  const cdf = z >= 0 ? 1 - p : p;
+  return Math.min(Math.max(cdf, 0), 1);
+}
+
+/**
+ * 分数 → 省位次反查（本地兜底）
+ *
+ * 模型：以「有效考生规模 N」为总量，按正态尾部分布估算高于该分数的人数。
+ *   - N = BASE_N × 省份系数 × (历史类 0.4)   // 河北约60万为基准
+ *   - 位次 = N × (1 - Φ((score - μ) / σ))，μ=430, σ=80
+ * 高分尾部极薄：730 分在山东约为个位~百位级（绝不可能数千名），
+ * 这与「高考录取看省排名、同分极少」的常识一致。
+ */
 export function lookupScoreRankLocal(
   provinceCode: string,
   category: 'physics' | 'history' | 'all' | 'comprehensive',
@@ -165,15 +190,26 @@ export function lookupScoreRankLocal(
 ): RankLookupResult {
   const subjectCategory = mapSubjectCategory(category);
 
+  // 有效考生规模：以河北约 60 万为基准（factor=1.0），按省份系数缩放；
+  // 历史类约为物理类的 40%（文科考生少）。
+  const BASE_N = 600000;
   const factor =
     (PROVINCE_FACTOR[provinceCode] ?? 1.0) *
     (subjectCategory === 'history' ? 0.4 : 1.0);
+  const N = Math.max(Math.round(BASE_N * factor), 1000);
 
-  const baseRank = Math.round((750 - score) * (80 + score * 0.08) * factor);
-  const cumulativeCount = Math.max(baseRank, 1);
-  const countAtScore = Math.max(Math.round(50 - (750 - score) * 0.06), 5);
+  // 分数 → 省位次：正态尾部分布近似（μ=430, σ=80）
+  const MU = 430;
+  const SIGMA = 80;
+  const z = (score - MU) / SIGMA;
+  const survival = 1 - normalCdf(z);
+  const cumulativeCount = Math.max(Math.round(N * survival), 1);
 
-  return { cumulativeCount, countAtScore };
+  // 同分人数：用正态概率密度估算（分数越高同分越少）
+  const density = Math.exp((-z * z) / 2) / (SIGMA * Math.sqrt(2 * Math.PI));
+  const countAtScore = Math.max(Math.round(N * density), 3);
+
+  return { cumulativeCount, countAtScore, source: 'local' };
 }
 
 // ============================================================

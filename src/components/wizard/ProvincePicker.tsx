@@ -16,10 +16,47 @@ interface ProvincePickerProps {
 export function ProvincePicker({ value, onChange, onModeChange }: ProvincePickerProps) {
   const [sheetVisible, setSheetVisible] = useState(false);
 
+  // 省份拼音关键字（全称 + 首字母），用于模糊搜索。
+  // 例如：山东 → "shandong sd"，用户搜「sd」「shandong」「山东」都能命中。
+  const PINYIN: Record<string, string> = {
+    '11': 'beijing bj',
+    '12': 'tianjin tj',
+    '13': 'hebei hb',
+    '14': 'shanxi sx',
+    '15': 'neimenggu nmg',
+    '21': 'liaoning ln',
+    '22': 'jilin jl',
+    '23': 'heilongjiang hlj',
+    '31': 'shanghai sh',
+    '32': 'jiangsu js',
+    '33': 'zhejiang zj',
+    '34': 'anhui ah',
+    '35': 'fujian fj',
+    '36': 'jiangxi jx',
+    '37': 'shandong sd',
+    '41': 'henan hn',
+    '42': 'hubei hb',
+    '43': 'hunan hn',
+    '44': 'guangdong gd',
+    '45': 'guangxi gx',
+    '46': 'hainan hn',
+    '50': 'chongqing cq',
+    '51': 'sichuan sc',
+    '52': 'guizhou gz',
+    '53': 'yunnan yn',
+    '54': 'xizang xz',
+    '61': 'shanxi sx',
+    '62': 'gansu gs',
+    '63': 'qinghai qh',
+    '64': 'ningxia nx',
+    '65': 'xinjiang xj',
+  };
+
   const options: ActionSheetOption[] = PROVINCES.map((p) => ({
     label: p.name,
     value: p.code,
     badge: p.mode,
+    keywords: PINYIN[p.code] ?? '',
   }));
 
   const handleSelect = (code: string) => {
@@ -67,6 +104,8 @@ export function ProvincePicker({ value, onChange, onModeChange }: ProvincePicker
         selectedValue={value}
         onSelect={handleSelect}
         onClose={() => setSheetVisible(false)}
+        searchable
+        searchPlaceholder="搜索省份（如 山东 / shandong / sd）"
       />
     </div>
   );

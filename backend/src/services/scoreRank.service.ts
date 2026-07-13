@@ -14,25 +14,46 @@ import { createLogger } from '@/utils/logger.js';
 const log = createLogger('ScoreRank');
 
 /**
+ * 标准正态累积分布函数 Φ(z) 近似（Abramowitz & Stegun 26.2.17）
+ */
+function normalCdf(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989422804014327 * Math.exp((-z * z) / 2);
+  const p =
+    d *
+    t *
+    (0.319381530 +
+      t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  const cdf = z >= 0 ? 1 - p : p;
+  return Math.min(Math.max(cdf, 0), 1);
+}
+
+/**
  * 阶段一硬编码算法（降级用）
  *
- * factor = provinceFactor[provinceCode] (默认1.0) * (subjectCategory === 'history' ? 0.4 : 1.0)
- * baseRank = Math.round((750 - score) * (80 + score * 0.08) * factor)
- * cumulativeCount = Math.max(baseRank, 1)
- * countAtScore = Math.max(Math.round(50 - (750 - score) * 0.06), 5)
+ * 模型：以「有效考生规模 N」为总量，按正态尾部分布估算高于该分数的人数。
+ *   - N = BASE_N × 省份系数 × (历史类 0.4)，河北约 60 万为基准
+ *   - 位次 = N × (1 - Φ((score - μ) / σ))，μ=430, σ=80
+ * 高分尾部极薄：730 分在山东约为个位~百位级（绝不可能数千名）。
  */
 function fallbackLookup(
   provinceCode: string,
   subjectCategory: SubjectCategory,
   score: number,
 ): RankLookupResult {
+  const BASE_N = 600000;
   const factor =
     (provinceFactor[provinceCode] ?? 1.0) *
     (subjectCategory === 'history' ? 0.4 : 1.0);
+  const N = Math.max(Math.round(BASE_N * factor), 1000);
 
-  const baseRank = Math.round((750 - score) * (80 + score * 0.08) * factor);
-  const cumulativeCount = Math.max(baseRank, 1);
-  const countAtScore = Math.max(Math.round(50 - (750 - score) * 0.06), 5);
+  const MU = 430;
+  const SIGMA = 80;
+  const z = (score - MU) / SIGMA;
+  const cumulativeCount = Math.max(Math.round(N * (1 - normalCdf(z))), 1);
+
+  const density = Math.exp((-z * z) / 2) / (SIGMA * Math.sqrt(2 * Math.PI));
+  const countAtScore = Math.max(Math.round(N * density), 3);
 
   return { cumulativeCount, countAtScore };
 }
