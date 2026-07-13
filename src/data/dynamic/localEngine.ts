@@ -223,9 +223,11 @@ function makeRec(
   majorIdx: number,
   provinceName: string,
   userRank: number,
+  majorPool: string[],
 ): Recommendation {
   const school = SCHOOL_POOL[schoolIdx % SCHOOL_POOL.length];
-  const major = MAJOR_POOL[majorIdx % MAJOR_POOL.length];
+  // 专业索引从「有效专业池」取值：设置了专业偏好则用偏好池，否则用全量池
+  const major = majorPool[majorIdx % majorPool.length] ?? MAJOR_POOL[majorIdx % MAJOR_POOL.length];
   const [hitMin, hitMax] = TIER_HIT_RATE_RANGES[tier];
   const offset = (index % 5) * 2;
   const hitRateMin = Math.max(hitMin + offset, 1);
@@ -288,18 +290,25 @@ export function generateRecommendationsLocally(
   const provinceName = PROVINCE_NAMES[req.provinceCode] ?? '山东';
   const userRank = req.userRank ?? 50000;
 
-  // 专业索引采用 stride=4 跨档错开，保证 50 条推荐覆盖 50 个不同专业（解决"专业少"）
+  // 有效专业池：设置了专业偏好 → 仅用偏好专业；未设置（移除偏好）→ 退回全量专业池
+  // 这样「移除专业偏好」会立刻改变生成结果（不再局限于原偏好），与用户预期一致。
+  const effectiveMajorPool: string[] =
+    req.preferredMajors && req.preferredMajors.length > 0
+      ? req.preferredMajors
+      : MAJOR_POOL;
+
+  // 专业索引采用 stride=4 跨档错开，保证推荐覆盖更多不同专业（解决"专业少"）
   const rush: Recommendation[] = Array.from({ length: COUNT.rush }, (_, i) =>
-    makeRec('rush', i, i, i * 4, provinceName, userRank),
+    makeRec('rush', i, i, i * 4, provinceName, userRank, effectiveMajorPool),
   );
   const stable: Recommendation[] = Array.from({ length: COUNT.stable }, (_, i) =>
-    makeRec('stable', i, i + 1, i * 4 + 1, provinceName, userRank),
+    makeRec('stable', i, i + 1, i * 4 + 1, provinceName, userRank, effectiveMajorPool),
   );
   const preserve: Recommendation[] = Array.from({ length: COUNT.preserve }, (_, i) =>
-    makeRec('preserve', i, i + 2, i * 4 + 2, provinceName, userRank),
+    makeRec('preserve', i, i + 2, i * 4 + 2, provinceName, userRank, effectiveMajorPool),
   );
   const cushion: Recommendation[] = Array.from({ length: COUNT.cushion }, (_, i) =>
-    makeRec('cushion', i, i + 3, i * 4 + 3, provinceName, userRank),
+    makeRec('cushion', i, i + 3, i * 4 + 3, provinceName, userRank, effectiveMajorPool),
   );
 
   return { rush, stable, preserve, cushion };

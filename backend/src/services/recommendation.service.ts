@@ -101,9 +101,14 @@ export async function initRecommendationCache(): Promise<void> {
 function generateRecommendationsByRules(
   provinceCode: string,
   userRank: number,
+  preferredMajors?: string[],
 ): TierRecommendations {
   const provinceName = PROVINCE_NAMES[provinceCode] ?? '山东';
   const rankBase = Math.round(userRank / 1000) * 1000;
+
+  // 有效专业池：设置了专业偏好 → 仅用偏好专业；未设置 → 退回全量缓存专业池
+  const effectiveMajorPool: string[] =
+    preferredMajors && preferredMajors.length > 0 ? preferredMajors : cachedMajors;
 
   /**
    * 构造单条推荐（与前端 makeRec 完全一致）
@@ -116,7 +121,7 @@ function generateRecommendationsByRules(
     majorIdx: number,
   ): Recommendation {
     const school = cachedSchools[schoolIdx % cachedSchools.length];
-    const major = cachedMajors[majorIdx % cachedMajors.length];
+    const major = effectiveMajorPool[majorIdx % effectiveMajorPool.length] ?? cachedMajors[majorIdx % cachedMajors.length];
     const [hitMin, hitMax] = tierHitRateRanges[tier];
     const offset = (index % 5) * 2;
     const hitRateMin = Math.max(hitMin + offset, 1);
@@ -220,6 +225,6 @@ export async function generateRecommendations(
     const msg = (err as Error).message;
     log.warn('大模型生成失败，降级到规则引擎', { error: msg });
     // —— 第二步：降级到规则引擎 ——
-    return generateRecommendationsByRules(req.provinceCode, req.userRank);
+    return generateRecommendationsByRules(req.provinceCode, req.userRank, req.preferredMajors);
   }
 }
