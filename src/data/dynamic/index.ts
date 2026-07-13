@@ -81,6 +81,100 @@ function mapSubjectCategory(category: string): string {
   return category;
 }
 
+// ============================================================
+// 网络请求加固（解决 Railway 免费版冷启动导致的"无响应"）
+// ============================================================
+
+/**
+ * 前端请求统一兜底超时（毫秒）。
+ * Vercel 免费版 rewrite 代理转发上限约 10s，这里设 25s 仅防止连接被永久挂起；
+ * 真正的冷启动问题由 getRecommendationsWithRetry 的"唤醒 + 轮询 + 重试"解决。
+ */
+const CLIENT_TIMEOUT_MS = 25000;
+
+/**
+ * 带超时控制的 fetch 包装。超时后 AbortController 中断请求，避免无限转圈。
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = CLIENT_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * 唤醒后端（通过 Vercel rewrite 访问 Railway /health）。
+ * 忽略一切错误——目的是触发 Railway 容器从休眠中启动。
+ */
+export async function wakeBackend(): Promise<void> {
+  try {
+    await fetchWithTimeout('/health', { method: 'GET' }, 8000);
+  } catch {
+    /* 唤醒失败不影响后续重试 */
+  }
+}
+
+/**
+ * 轮询后端直到就绪（处理 Railway 冷启动）。
+ * 最多等待 maxMs，每 3s 探测一次 /health。
+ * @returns true=后端已就绪，false=超时仍未就绪
+ */
+export async function waitForBackendReady(maxMs = 30000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    try {
+      const res = await fetchWithTimeout('/health', { method: 'GET' }, 5000);
+      if (res.ok) return true;
+    } catch {
+      /* 尚未就绪，继续等 */
+    }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  return false;
+}
+
+/**
+ * 带"自动唤醒 + 轮询 + 重试"的推荐生成。
+ *
+ * 背景：Railway 免费版在 5 分钟无流量后休眠容器。用户填写 Step1-3（纯前端，
+ * 不打后端）期间 Railway 已休眠，到 Step4 点生成才唤醒，冷启动 10-30s 超过
+ * Vercel 代理上限导致连接挂起。本函数：
+ *   1. 首次尝试生成（同时触发 Railway 冷启动）
+ *   2. 若失败，唤醒后端并轮询等待其就绪
+ *   3. 最多重试 maxAttempts 次，期间通过 onStatus 回调向用户展示状态
+ *
+ * @param req 用户请求数据
+ * @param onStatus 状态回调（用于 UI 展示"正在唤醒..."）
+ * @param maxAttempts 最大尝试次数（默认 3）
+ */
+export async function getRecommendationsWithRetry(
+  req: RecommendationRequest,
+  onStatus?: (msg: string) => void,
+  maxAttempts = 3,
+): Promise<TierRecommendations> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await getRecommendations(req);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        onStatus?.(`后端服务正在唤醒，请稍候…（第 ${attempt} 次重试）`);
+        await wakeBackend();
+        await waitForBackendReady(25000);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /**
  * 分数 → 位次反查（异步，调用后端 API）
  *
@@ -96,7 +190,7 @@ export async function getScoreRank(
 ): Promise<RankLookupResult> {
   const subjectCategory = mapSubjectCategory(category);
 
-  const res = await fetch('/api/v1/score-rank/lookup', {
+  const res = await fetchWithTimeout('/api/v1/score-rank/lookup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provinceCode, subjectCategory, score }),
@@ -122,7 +216,7 @@ export async function getScoreRank(
 export async function getRecommendations(
   req: RecommendationRequest,
 ): Promise<TierRecommendations> {
-  const res = await fetch('/api/v1/recommendations/generate', {
+  const res = await fetchWithTimeout('/api/v1/recommendations/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),

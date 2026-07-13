@@ -33,13 +33,13 @@ export const DEEPSEEK_BASE_URL: string =
 export const DEEPSEEK_MODEL: string =
   process.env.DEEPSEEK_MODEL ?? 'deepseek-v4-flash';
 
-/** 大模型请求超时时间（毫秒），默认 8 秒
+/** 大模型请求超时时间（毫秒），默认 5 秒
  * 说明：Vercel 免费版 rewrite 代理转发超时约 10 秒。
  * 若设为 60s，DeepSeek 响应慢时会触发 Vercel 提前掐断连接 → 前端「无响应」。
- * 设为 8s：DeepSeek 8 秒内未响应则立即降级规则引擎（<1s 返回），稳在 10s 限制内。
+ * 设为 5s：DeepSeek 5 秒内未响应则立即降级规则引擎（<1s 返回），稳在 10s 限制内，留足余量。
  */
 export const LLM_TIMEOUT: number = parseInt(
-  process.env.LLM_TIMEOUT ?? '8000',
+  process.env.LLM_TIMEOUT ?? '5000',
   10,
 );
 

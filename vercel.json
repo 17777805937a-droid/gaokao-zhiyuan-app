@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://gaokao-zhiyuan-app-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://gaokao-zhiyuan-app-production.up.railway.app/health"
     }
   ]
 }

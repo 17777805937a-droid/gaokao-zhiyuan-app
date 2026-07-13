@@ -2,6 +2,7 @@
  * Step 4 确认生成 — 信息汇总 + 志愿数提示 + 生成推荐（含 Loading）
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BottomCTA } from '@/components/common/BottomCTA';
@@ -59,8 +60,14 @@ export default function Step4Confirm() {
   // —— 认证（登录态才落库档案）——
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+  // 生成状态提示（唤醒后端时展示）与错误提示
+  const [statusMsg, setStatusMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
   const handleGenerate = async () => {
     if (!provinceCode || provinceRank == null) return;
+    setErrorMsg('');
+    setStatusMsg('');
     setGenerating(true);
     try {
       // 登录态下，生成前显式保存一次志愿档案（与自动同步互补）
@@ -74,25 +81,32 @@ export default function Step4Confirm() {
           })
           .catch(() => {});
       }
-      // 将完整用户数据发送给后端，后端整合成提示词交由大模型处理
-      await generateMock({
-        provinceCode,
-        userRank: provinceRank,
-        totalScore,
-        selectedSubjects,
-        fillerRole,
-        weightMode,
-        schoolWeight,
-        majorWeight,
-        cityWeight,
-        strategyMode,
-        preferredMajors,
-        preferredCities,
-        preferredLevels,
-      });
+      // 将完整用户数据发送给后端；带自动唤醒+重试，处理 Railway 冷启动
+      await generateMock(
+        {
+          provinceCode,
+          userRank: provinceRank,
+          totalScore,
+          selectedSubjects,
+          fillerRole,
+          weightMode,
+          schoolWeight,
+          majorWeight,
+          cityWeight,
+          strategyMode,
+          preferredMajors,
+          preferredCities,
+          preferredLevels,
+        },
+        setStatusMsg,
+      );
+      setStatusMsg('');
       navigate('/results', { replace: true });
     } catch (err) {
       setGenerating(false);
+      setStatusMsg('');
+      const msg = err instanceof Error ? err.message : '未知错误';
+      setErrorMsg(`生成失败：${msg}。请检查网络后点击「重新生成」重试。`);
       console.error('生成推荐失败:', err);
     }
   };
@@ -183,6 +197,36 @@ export default function Step4Confirm() {
           <InfoTip type="warning" title="志愿填报须知">
             您所在省份可填报 {maxVolunteers} 个志愿（{volunteerUnitDesc}），AI 将为您生成冲稳保垫四档方案
           </InfoTip>
+        )}
+
+        {/* 生成状态提示（唤醒后端时展示） */}
+        {statusMsg && (
+          <div
+            className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-blue"
+            style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)' }}
+          >
+            <span className="animate-spin inline-block h-4 w-4 rounded-full border-2 border-blue border-t-transparent" />
+            {statusMsg}
+          </div>
+        )}
+
+        {/* 错误提示 + 重试 */}
+        {errorMsg && (
+          <div
+            className="rounded-2xl px-4 py-3"
+            style={{ background: '#fef2f2', border: '1px solid #fecaca' }}
+          >
+            <p className="mb-2 text-sm" style={{ color: '#dc2626' }}>
+              {errorMsg}
+            </p>
+            <button
+              onClick={handleGenerate}
+              className="rounded-lg px-3 py-1.5 text-sm text-white"
+              style={{ background: '#ef4444' }}
+            >
+              重新生成
+            </button>
+          </div>
         )}
       </div>
 

@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import type { TierRecommendations, Tier, Recommendation, RecommendationRequest } from '@/types/recommendation';
-import { generateMockRecommendations } from '@/hooks/useScoreRankLookup';
+import { getRecommendationsWithRetry } from '@/data/dynamic';
 
 interface RecommendationState {
   recommendations: TierRecommendations;
@@ -16,7 +16,7 @@ interface RecommendationState {
   setRecommendations: (data: TierRecommendations) => void;
   setActiveTier: (tier: Tier) => void;
   setGenerating: (generating: boolean) => void;
-  generateMock: (req: RecommendationRequest) => Promise<void>;
+  generateMock: (req: RecommendationRequest, onStatus?: (msg: string) => void) => Promise<void>;
   getActiveRecommendations: () => Recommendation[];
 }
 
@@ -43,8 +43,8 @@ export const useRecommendationStore = create<RecommendationState>()((set, get) =
 
   setGenerating: (generating) => set({ generating }),
 
-  generateMock: async (req) => {
-    const data = await generateMockRecommendations(req);
+  generateMock: async (req, onStatus) => {
+    const data = await getRecommendationsWithRetry(req, onStatus);
     const totalCount = data.rush.length + data.stable.length + data.preserve.length + data.cushion.length;
     set({
       recommendations: data,
