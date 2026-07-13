@@ -6,7 +6,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { WEIGHT_TEMPLATES } from '@/config/constants';
 import { formatWeights } from '@/utils/format';
-import { validateWeightSum } from '@/utils/validation';
+import { rebalanceWeights, weightSum } from '@/utils/weight';
 
 interface WeightSelectorProps {
   mode: 'school_first' | 'major_first' | 'balanced' | 'custom';
@@ -24,24 +24,20 @@ export function WeightSelector({
   onWeightsChange,
 }: WeightSelectorProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleTemplateSelect = (templateMode: string) => {
     onModeChange(templateMode);
     const template = WEIGHT_TEMPLATES.find((t) => t.mode === templateMode);
     if (template) {
       onWeightsChange(template.weights);
-      setError(null);
     }
   };
 
   const handleSliderChange = (key: 'school' | 'major' | 'city', value: number) => {
-    const newWeights = { ...weights, [key]: value };
+    // 自动平衡：拖动一条，其余两条按当前比例补到总和 100%
+    const newWeights = rebalanceWeights(weights, key, value);
     onWeightsChange(newWeights);
     onModeChange('custom');
-
-    const result = validateWeightSum(newWeights.school, newWeights.major, newWeights.city);
-    setError(result.valid ? null : result.message ?? null);
   };
 
   return (
@@ -125,14 +121,9 @@ export function WeightSelector({
               </div>
             );
           })}
-          {error && (
-            <p className="text-xs text-red mt-2">{error}</p>
-          )}
-          {!error && (
-            <p className="text-[11px] text-text-3 mt-2 text-center">
-              权重之和：{weights.school + weights.major + weights.city}%
-            </p>
-          )}
+          <p className="text-[11px] text-text-3 mt-2 text-center">
+            权重之和：{weightSum(weights)}%（自动平衡，拖动任一滑块其余自动按比例调整）
+          </p>
         </div>
       )}
     </div>
