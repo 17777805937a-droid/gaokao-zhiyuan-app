@@ -183,6 +183,28 @@ export async function getRecommendationsWithRetry(
  * @param score 高考总分
  * @returns { cumulativeCount, countAtScore }
  */
+/**
+ * 安全解析 JSON 响应。
+ * 检查 HTTP 状态码、Content-Type、body 非空，
+ * 三者任一不满足则抛出明确错误（而非浏览器原生的 SyntaxError/Unexpected end of JSON input）。
+ */
+async function safeParseJson<T>(res: Response, fallbackMsg: string): Promise<T> {
+  const text = await res.text();
+  if (!text || text.trim().length === 0) {
+    throw new Error(`${fallbackMsg}：后端返回了空响应（可能服务未启动或网络中断）`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // 截取前 80 字符帮助排查，避免把整个 HTML 页面塞进错误消息
+    const preview = text.trim().slice(0, 80);
+    throw new Error(
+      `${fallbackMsg}：后端返回了非法数据（${preview}${text.length > 80 ? '…' : ''}）。` +
+      `请确认后端服务正常运行。`,
+    );
+  }
+}
+
 export async function getScoreRank(
   provinceCode: string,
   category: 'physics' | 'history' | 'all',
@@ -196,7 +218,11 @@ export async function getScoreRank(
     body: JSON.stringify({ provinceCode, subjectCategory, score }),
   });
 
-  const json: ApiResponse<RankLookupResult> = await res.json();
+  if (!res.ok) {
+    throw new Error(`位次查询失败（HTTP ${res.status}）：后端服务可能未启动或网络异常`);
+  }
+
+  const json: ApiResponse<RankLookupResult> = await safeParseJson<ApiResponse<RankLookupResult>>(res, '位次查询失败');
   if (json.code !== 0 || !json.data) {
     throw new Error(json.message || '位次反查失败');
   }
@@ -222,7 +248,11 @@ export async function getRecommendations(
     body: JSON.stringify(req),
   });
 
-  const json: ApiResponse<TierRecommendations> = await res.json();
+  if (!res.ok) {
+    throw new Error(`推荐生成失败（HTTP ${res.status}）：后端服务可能未启动或网络异常`);
+  }
+
+  const json: ApiResponse<TierRecommendations> = await safeParseJson<ApiResponse<TierRecommendations>>(res, '推荐生成失败');
   if (json.code !== 0 || !json.data) {
     throw new Error(json.message || '推荐生成失败');
   }

@@ -33,7 +33,7 @@ export function TagInput({
 
   const filteredSuggestions = searchOptions
     .filter((opt) => opt.includes(inputValue) && !tags.includes(opt))
-    .slice(0, 8);
+    .slice(0, 15);
 
   const handleAdd = (tag: string) => {
     const trimmed = tag.trim();
@@ -110,7 +110,7 @@ export function TagInput({
           />
           {/* 搜索联想 */}
           {showSuggestions && filteredSuggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-lg shadow-lg border border-border z-10 max-h-48 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-lg shadow-lg border border-border z-10 max-h-72 overflow-y-auto">
               {filteredSuggestions.map((suggestion) => (
                 <button
                   key={suggestion}
